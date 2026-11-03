@@ -49,8 +49,12 @@ if a.lesson:
 lib_files = sorted((here.parent / "lessons").glob("*.json"))
 lib_json = safe(json.dumps([json.loads(f.read_text(encoding="utf-8")) for f in lib_files], ensure_ascii=False), "lesson library")
 print(f"lesson library: {len(lib_files)} lessons")
+import subprocess, datetime
+try: sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=here.parent, capture_output=True, text=True).stdout.strip() or "nogit"
+except Exception: sha = "nogit"
+build_id = datetime.datetime.now(datetime.timezone.utc).strftime("%y%m%d.%H%M") + "-" + sha
 html = (here / "ui.html").read_text(encoding="utf-8")
-for marker, body in (("/*__PDFJS_LIB__*/", lib), ("/*__PDFJS_WORKER__*/", worker), ("/*__CORE__*/", core), ("/*__GEN__*/", gen), ("/*__CATALOG__*/null", catalog), ("/*__PRELOAD__*/null", pre), ("/*__LIBRARY__*/[]", lib_json)):
+for marker, body in (("/*__PDFJS_LIB__*/", lib), ("/*__PDFJS_WORKER__*/", worker), ("/*__CORE__*/", core), ("/*__GEN__*/", gen), ("/*__BUILD__*/dev", build_id), ("/*__CATALOG__*/null", catalog), ("/*__PRELOAD__*/null", pre), ("/*__LIBRARY__*/[]", lib_json)):
     assert html.count(marker) == 1, marker
     html = html.replace(marker, body)
 out.write_text(html, encoding="utf-8")

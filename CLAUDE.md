@@ -28,3 +28,5 @@ Owner: Andrew, 4th grade teacher (Paideia School, Tampa). The page runs on a cla
 - New engine checklist now also needs: a generator, `COVERAGE` slugs, and `tests/gentest.mjs` passing (it solves ~48k generated problems).
 - `catalog/` is crawled from k5learning.com with the built-in browser (WebFetch cannot list sub-topics). PDFs cannot be downloaded from the sandbox.
 - CSS gotcha: the drill equation container is `.row`. Do not reuse generic class names (`.row`, `.n`, `.d`) for new screens; the generator list uses `.grow`/`.gn`.
+- Layout guard: `guard()` in `ui.html` runs after every render (equal numerator/denominator size, row fits both ways, steps never spill) and logs repairs to `S.guardLog`. `tests/e2e_layout.py` (Playwright) sweeps every ready generator topic and injects hostile CSS; run it before pushing. Fraction sizes are also locked in CSS (`.frac>.n,.frac>.d`).
+- Stale copies: every build stamps `<meta name="build-id">` (timestamp-sha). The page compares itself to the live file on load and auto-reloads (idle) or shows an update banner on Home. The build id shows bottom-right on Home.

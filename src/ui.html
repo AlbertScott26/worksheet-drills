@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en"><head><meta name="build-id" content="/*__BUILD__*/dev"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Worksheet Drills</title>
 <style>
@@ -47,6 +47,8 @@ body.idle #drill{cursor:none}
 .frac{display:inline-flex;flex-direction:column;align-items:center}
 .frac .n{padding:0 .08em .03em;line-height:1}
 .frac .d{border-top:.05em solid currentColor;padding:.03em .08em 0;line-height:1}
+.frac>.n,.frac>.d{font-size:1em!important;font-family:inherit!important;font-weight:inherit!important;letter-spacing:inherit!important;color:inherit!important;min-height:0!important;border-bottom:0!important}
+.frac>.n{border-top:0!important}
 .eq{font:600 104px/1 var(--body);opacity:.9}
 .eq.cm{font-size:80px;margin:0 -8px}
 .slot{position:relative;display:inline-flex;align-items:center}
@@ -101,6 +103,8 @@ body.moved #hint{display:none}
 #goto input{width:220px;font:700 64px/1.1 var(--body);text-align:center;color:#fff;background:var(--bg);border:1px solid var(--line);padding:8px;user-select:text;-webkit-user-select:text}
 
 /* ---------- home + generator ---------- */
+#upd{position:absolute;left:96px;right:96px;top:128px;padding:16px 22px;background:var(--panel);border:3px solid var(--gold);font:700 20px/1.2 var(--mono);letter-spacing:.06em;color:#fff;cursor:pointer;text-align:center;z-index:30}
+#ver{position:absolute;right:96px;bottom:34px;font:500 13px/1 var(--mono);letter-spacing:.08em;opacity:.5}
 .tb{position:absolute;top:46px;font:600 16px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:12px 20px;cursor:pointer}
 #home .tiles{position:absolute;left:96px;right:96px;top:170px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
 .tile{background:var(--panel);border:1px solid var(--line);padding:44px 40px;height:520px;text-align:left;color:#fff;font-family:var(--body);cursor:pointer;display:flex;flex-direction:column}
@@ -150,6 +154,8 @@ body.moved #hint{display:none}
       </button>
     </div>
     <div class="foot">PRESS 1 OR 2  &middot;  ESC RETURNS HERE</div>
+    <div id="ver"></div>
+    <button id="upd" hidden>A NEWER VERSION IS AVAILABLE. CLICK HERE TO UPDATE.</button>
   </div>
 
   <!-- GENERATOR -->
@@ -583,6 +589,7 @@ function render(){
   st.innerHTML = sh;
   for (var k = 1; st.scrollHeight > st.clientHeight + 1 && k > 0.5; ) { k -= 0.06; st.style.setProperty('--k', k.toFixed(2)); }
 
+  guard();
   var chip = $('chip');
   chip.className = 'chip ' + (guided ? 'guided' : 'walk');
   chip.textContent = guided ? 'GUIDED · WITH REASONING' : (board ? 'WALK-THROUGH · ON THE BOARD' : 'WALK-THROUGH · STEP BOXES');
@@ -592,6 +599,28 @@ function render(){
   $('footr').textContent = p.steps.length ? (p.text != null && p.steps.length === 1 ? (S.s ? 'ANSWER SHOWN' : 'ANSWER HIDDEN') : 'STEP ' + S.s + ' OF ' + p.steps.length) : 'NO ANSWER KEY';
   $('prog').style.width = ((S.i + (p.steps.length ? S.s / p.steps.length : 0)) / N * 100) + '%';
   $('fw').innerHTML = (S.s < p.steps.length ? (p.text != null && p.steps.length === 1 ? 'SHOW ANSWER' : 'NEXT STEP') : (S.i < N - 1 ? (p.text != null ? 'NEXT QUESTION' : 'NEXT PROBLEM') : 'END')) + ' &#9654;';
+}
+/* Layout guard: runs after every render. Repairs what it can and records anything it had to fix in S.guardLog,
+   so a bad size can never reach the TV unnoticed (tests fail if the log is not empty on healthy pages). */
+function guard(){
+  var log = [], stage = $('stage');
+  /* 1. numerator and denominator must be the same size */
+  [].forEach.call(stage.querySelectorAll('.frac'), function(f){
+    var n = f.querySelector('.n'), d = f.querySelector('.d'); if (!n || !d) return;
+    var a = getComputedStyle(n).fontSize, b = getComputedStyle(d).fontSize;
+    if (a !== b) { n.style.setProperty('font-size', b, 'important'); log.push('fraction size ' + a + ' vs ' + b); }
+  });
+  /* 2. equation row must fit its box both ways */
+  var row = $('row'), wrap = row.parentNode;
+  if (row.firstChild && !row.firstChild.classList.contains('ptext')) {
+    var w = row.offsetWidth, h = row.offsetHeight, k = Math.min(1, 1400 / w, (wrap.clientHeight - 4) / Math.max(h, 1));
+    if (k < 0.999) { row.style.transform = 'scale(' + k + ')'; if (h > wrap.clientHeight) log.push('row too tall ' + h); }
+  }
+  /* 3. steps area must not spill in either direction (last resort: shrink below the usual floor) */
+  var st = $('steps'), kk = parseFloat(st.style.getPropertyValue('--k')) || 1;
+  for (; (st.scrollHeight > st.clientHeight + 1 || st.scrollWidth > st.clientWidth + 1) && kk > 0.3; ) { kk -= 0.05; st.style.setProperty('--k', kk.toFixed(2)); }
+  if (st.scrollHeight > st.clientHeight + 1 || st.scrollWidth > st.clientWidth + 1) log.push('steps overflow');
+  S.guardLog = (S.guardLog || []).concat(log.map(function(m){ return 'p' + (S.i + 1) + ' s' + S.s + ': ' + m; }));
 }
 function renderImage(D, p, N){
   document.querySelector('.rowwrap').style.display = 'none'; $('steps').style.display = 'none';
@@ -774,6 +803,18 @@ document.addEventListener('mousemove', function(){
 });
 addEventListener('resize', function(){ fitStage(); if (S.data && !$('drill').hidden) render(); });
 
+/* ---------- stale-copy check ---------- */
+var BUILD = (document.querySelector('meta[name="build-id"]') || {}).content || 'dev';
+$('ver').textContent = 'BUILD ' + BUILD;
+if (/^https?:/.test(location.protocol)) {
+  fetch(location.pathname + '?nc=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(t){
+    var m = t.match(/name="build-id" content="([^"]+)"/);
+    if (!m || m[1] === BUILD || BUILD === 'dev') return;
+    var go = function(){ location.replace(location.pathname + '?v=' + encodeURIComponent(m[1])); };
+    if (!S.data && location.search.indexOf('v=' + m[1]) < 0) { go(); return; }   /* nothing in progress: update now */
+    $('upd').hidden = false; $('upd').onclick = go;
+  }).catch(function(){});
+}
 fitStage();
 setMode(S.mode);
 if (window.__PRELOAD__) {
