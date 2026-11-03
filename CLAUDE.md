@@ -21,3 +21,9 @@ Owner: Andrew, 4th grade teacher (Paideia School, Tampa). The page runs on a cla
 - `buildImageData` in `ui.html` renders PDF pages to canvas, crops each numbered cell and its matching key cell, and shows them on a white panel (`#pic`). `O` toggles it; it is automatic when the generic parser finds 0 items.
 - Label rule: text item matching `^\d{1,3}\s*[.)]$`, size <= 16. A page is a key page if it has "Answers" or all its labels repeat earlier ones. Fewer than 2 labels = page mode.
 - Scope and build order for K5 grade 4: see `SCOPE.md`.
+
+## Home + generator
+- `ui.html` screens: `#home`, `#gen`, `#start` (PDF drop), `#drill`. `showHome/showGen/showStart/showDrill` hide the others. `S.origin` = 'pdf' | 'gen' (Esc goes back to where the drill came from; `R` makes a new set).
+- `build.py` embeds `src/generators.js` (`/*__GEN__*/`) and `catalog/k5-grade4.json` (`/*__CATALOG__*/`).
+- New engine checklist now also needs: a generator, `COVERAGE` slugs, and `tests/gentest.mjs` passing (it solves ~48k generated problems).
+- `catalog/` is crawled from k5learning.com with the built-in browser (WebFetch cannot list sub-topics). PDFs cannot be downloaded from the sandbox.

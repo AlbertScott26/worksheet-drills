@@ -5,7 +5,7 @@
   "description": "Turns worksheet PDFs into one-question-at-a-time guided TV drills.",
   "scripts": {
     "build": "python3 src/build.py",
-    "test": "node tests/parsetest.mjs && node tests/comparetest.mjs && node tests/keycheck.mjs"
+    "test": "node tests/parsetest.mjs && node tests/comparetest.mjs && node tests/keycheck.mjs && node tests/gentest.mjs"
   },
   "dependencies": { "pdfjs-dist": "6.2.108" }
 }

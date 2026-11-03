@@ -30,3 +30,6 @@ Worksheet PDFs are not stored in this repo (they belong to their publishers). Ke
 
 ## Original sheet view
 Press `O` to see any worksheet exactly as printed, one question at a time, with the answer revealed in place. Scope of supported worksheet families: `SCOPE.md`.
+
+## Teacher toolbox
+The page opens on a home screen: Worksheet to Presentation (drop a PDF) and Problem Generator (pick a K5 grade 4 topic, get fresh problems with steps). `R` makes a new set while presenting.

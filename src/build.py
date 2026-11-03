@@ -41,6 +41,8 @@ def classic(text, global_name=None):
 lib = safe(classic((pdfjs / "pdf.min.mjs").read_text(encoding="utf-8"), "__pdfjsLib"), "pdf lib")
 worker = safe(classic((pdfjs / "pdf.worker.min.mjs").read_text(encoding="utf-8")), "pdf worker")
 core = safe((here / "core.js").read_text(encoding="utf-8"), "core")
+gen = safe((here / "generators.js").read_text(encoding="utf-8"), "generators")
+catalog = safe(json.dumps(json.loads((here.parent / "catalog" / "k5-grade4.json").read_text(encoding="utf-8")), ensure_ascii=False), "catalog")
 pre = "null"
 if a.lesson:
     pre = safe(json.dumps(json.loads(Path(a.lesson).read_text(encoding="utf-8")), ensure_ascii=False), "lesson")
@@ -48,7 +50,7 @@ lib_files = sorted((here.parent / "lessons").glob("*.json"))
 lib_json = safe(json.dumps([json.loads(f.read_text(encoding="utf-8")) for f in lib_files], ensure_ascii=False), "lesson library")
 print(f"lesson library: {len(lib_files)} lessons")
 html = (here / "ui.html").read_text(encoding="utf-8")
-for marker, body in (("/*__PDFJS_LIB__*/", lib), ("/*__PDFJS_WORKER__*/", worker), ("/*__CORE__*/", core), ("/*__PRELOAD__*/null", pre), ("/*__LIBRARY__*/[]", lib_json)):
+for marker, body in (("/*__PDFJS_LIB__*/", lib), ("/*__PDFJS_WORKER__*/", worker), ("/*__CORE__*/", core), ("/*__GEN__*/", gen), ("/*__CATALOG__*/null", catalog), ("/*__PRELOAD__*/null", pre), ("/*__LIBRARY__*/[]", lib_json)):
     assert html.count(marker) == 1, marker
     html = html.replace(marker, body)
 out.write_text(html, encoding="utf-8")

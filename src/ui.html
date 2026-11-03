@@ -92,19 +92,84 @@ body.idle #drill{cursor:none}
 body.moved .nav{opacity:1}
 body.moved #hint{display:none}
 .nav button{font:600 16px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:12px 20px;cursor:pointer}
-#hint{position:absolute;left:600px;right:260px;bottom:34px;text-align:center;font:500 16px/1 var(--mono);letter-spacing:.1em;pointer-events:none;opacity:0}
+#hint{position:absolute;left:400px;right:240px;bottom:34px;text-align:center;white-space:nowrap;font:500 15px/1 var(--mono);letter-spacing:.06em;pointer-events:none;opacity:0}
 #hint.show{animation:fade 11s forwards}
 @keyframes fade{0%,70%{opacity:.85}100%{opacity:0}}
 #goto{position:absolute;left:0;top:0;width:1600px;height:900px;background:rgba(20,27,54,.88);display:flex;align-items:center;justify-content:center;z-index:5}
 #goto .box{background:var(--panel);border:2px solid var(--gold);padding:28px 40px;text-align:center}
 #goto .lbl{font:600 20px/1 var(--mono);letter-spacing:.08em;margin-bottom:18px}
 #goto input{width:220px;font:700 64px/1.1 var(--body);text-align:center;color:#fff;background:var(--bg);border:1px solid var(--line);padding:8px;user-select:text;-webkit-user-select:text}
+
+/* ---------- home + generator ---------- */
+.tb{position:absolute;top:46px;font:600 16px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:12px 20px;cursor:pointer}
+#home .tiles{position:absolute;left:96px;right:96px;top:170px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.tile{background:var(--panel);border:1px solid var(--line);padding:44px 40px;height:520px;text-align:left;color:#fff;font-family:var(--body);cursor:pointer;display:flex;flex-direction:column}
+.tile:hover,.tile:focus{border:3px solid var(--gold);padding:42px 38px;outline:none}
+.tile .k{font:600 20px/1 var(--mono);letter-spacing:.1em;color:var(--cream);margin-bottom:26px}
+.tile .t{font:700 60px/1.05 var(--display);letter-spacing:.03em;text-transform:uppercase;margin-bottom:28px}
+.tile .d{font:400 29px/1.35 var(--body);color:var(--cream)}
+.tile .go{margin-top:auto;font:700 22px/1 var(--mono);letter-spacing:.1em}
+#gtabs{position:absolute;left:96px;right:96px;top:134px;display:flex;gap:12px}
+#gtabs button,.opt button{font:600 20px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:14px 22px;cursor:pointer}
+#gtabs button.sel,.opt button.sel{border:3px solid var(--gold);padding:12px 20px}
+#gtopics,#gsubs{position:absolute;top:204px;bottom:112px;overflow-y:auto;background:var(--panel);border:1px solid var(--line)}
+#gtopics{left:96px;width:430px}#gsubs{left:546px;right:96px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 20px;min-height:52px;font:400 24px/1.15 var(--body);color:#fff;cursor:pointer;border-bottom:1px solid var(--line)}
+.row.sel{background:var(--bg);box-shadow:inset 6px 0 0 var(--gold)}
+.row .n{font:600 16px/1 var(--mono);letter-spacing:.06em;color:var(--cream);white-space:nowrap}
+.row.soon{color:#9aa3c4}
+.row .rd{font:700 14px/1 var(--mono);letter-spacing:.1em;border:1px solid #fff;padding:5px 8px;color:#fff}
+.row.soon .rd{border-color:var(--line);color:#9aa3c4}
+#gbar{position:absolute;left:96px;right:96px;bottom:20px;height:76px;display:flex;align-items:center;gap:26px}
+#gbar .lab{font:600 15px/1 var(--mono);letter-spacing:.1em;color:var(--cream);margin-right:-12px}
+.opt{display:flex;gap:8px}.opt button{padding:12px 16px;font-size:18px}.opt button.sel{padding:10px 14px}
+#ggo{margin-left:auto;font:700 24px/1 var(--mono);letter-spacing:.1em;color:#fff;background:var(--panel);border:3px solid var(--gold);padding:18px 30px;cursor:pointer}
+#ggo:disabled{border-color:var(--line);color:#9aa3c4;cursor:default}
+#gmsg{position:absolute;left:96px;right:96px;bottom:2px;font:500 15px/1 var(--mono);letter-spacing:.04em;color:var(--cream);height:16px}
 </style></head>
 <body>
 <div id="stage">
 
   <!-- START SCREEN -->
-  <div id="start">
+  <!-- HOME -->
+  <div id="home">
+    <div class="hl">TEACHER TOOLS</div>
+    <div class="rule"></div>
+    <div class="tiles">
+      <button class="tile" id="tileWs">
+        <div class="k">TOOL 1</div>
+        <div class="t">Worksheet to Presentation</div>
+        <div class="d">Drop any worksheet PDF. Get a one-problem-at-a-time presentation with steps, reasoning, and the answer revealed on the board.</div>
+        <div class="go">OPEN &#9654;</div>
+      </button>
+      <button class="tile" id="tileGen">
+        <div class="k">TOOL 2</div>
+        <div class="t">Problem Generator</div>
+        <div class="d">Pick a subject and topic from the K5 Learning grade 4 list. Fresh problems every time, presented with the same steps.</div>
+        <div class="go">OPEN &#9654;</div>
+      </button>
+    </div>
+    <div class="foot">PRESS 1 OR 2  &middot;  ESC RETURNS HERE</div>
+  </div>
+
+  <!-- GENERATOR -->
+  <div id="gen" hidden>
+    <div class="hl">PROBLEM GENERATOR</div>
+    <button class="tb" id="genhome" style="right:96px">HOME</button>
+    <div class="rule"></div>
+    <div id="gtabs"></div>
+    <div id="gtopics"></div>
+    <div id="gsubs"></div>
+    <div id="gbar">
+      <span class="lab">PROBLEMS</span><div class="opt" id="gcount"></div>
+      <span class="lab">LEVEL</span><div class="opt" id="glevel"></div>
+      <button id="ggo">GENERATE &#9654;</button>
+    </div>
+    <div id="gmsg"></div>
+  </div>
+
+  <div id="start" hidden>
+    <button class="tb" id="starthome" style="right:700px">HOME</button>
     <div class="hl">WORKSHEET DRILLS</div>
     <button id="resume" hidden>RESUME WORKSHEET</button>
     <button id="acrbtn"></button>
@@ -157,13 +222,15 @@ body.moved #hint{display:none}
 
 <script>window.__PRELOAD__ = /*__PRELOAD__*/null; window.__LIBRARY__ = /*__LIBRARY__*/[];</script>
 <script>/*__CORE__*/</script>
+<script>/*__GEN__*/</script>
+<script>window.__CATALOG__ = /*__CATALOG__*/null;</script>
 <script>
 (function(){
 'use strict';
-var C = window.DrillCore;
+var C = window.DrillCore, GEN = window.DrillGen;
 var $ = function(id){ return document.getElementById(id); };
 var stage = $('stage');
-var S = { data: null, i: 0, s: 0, mode: 'guided', layout: 'board', acr: true, acrSeen: {} };
+var S = { origin: 'pdf', gen: null, data: null, i: 0, s: 0, mode: 'guided', layout: 'board', acr: true, acrSeen: {} };
 var ACRONYMS = { GCF: 'Greatest common factor' };
 try { var m = localStorage.getItem('fd-mode'); if (m === 'guided' || m === 'walk') S.mode = m; var ac = localStorage.getItem('fd-acr'); if (ac === '0') S.acr = false; var ly = localStorage.getItem('fd-layout'); if (ly === 'board' || ly === 'boxes') S.layout = ly; } catch (e) {}
 
@@ -559,20 +626,73 @@ function go(n){
 }
 
 /* ---------- screens ---------- */
+function hideAll(){ ['home', 'gen', 'start', 'drill'].forEach(function(id){ $(id).hidden = true; }); }
+function showHome(){ hideAll(); $('home').hidden = false; }
 function showStart(){
-  $('drill').hidden = true; $('start').hidden = false;
+  hideAll(); $('start').hidden = false;
   $('resume').hidden = !S.data;
   setMode(S.mode);
 }
 function showDrill(){
-  $('start').hidden = true; $('drill').hidden = false;
+  hideAll(); $('drill').hidden = false;
   render();
   var hint = $('hint');
-  hint.textContent = '\u2192 STEP  \u00b7  \u2190 BACK  \u00b7  M MODE  \u00b7  G GO TO  \u00b7  O ORIGINAL  \u00b7  L LAYOUT  \u00b7  F FULL  \u00b7  ESC NEW';
+  hint.textContent = '\u2192 STEP  \u00b7  \u2190 BACK  \u00b7  M MODE  \u00b7  G GO TO  \u00b7  ' + (S.origin === 'gen' ? 'R NEW SET' : 'O ORIGINAL') + '  \u00b7  L LAYOUT  \u00b7  F FULL  \u00b7  ESC BACK';
   hint.classList.remove('show'); void hint.offsetWidth; hint.classList.add('show');
 }
 
+/* ---------- generator ---------- */
+var CAT = window.__CATALOG__, G = { si: 0, ti: 0, ui: 0, count: 10, level: 0, focus: 'subs' };
+function subList(){
+  var sj = CAT.subjects[G.si], names = Object.keys(sj.topics), tn = names[G.ti];
+  return { sj: sj, names: names, tn: tn, subs: sj.topics[tn].map(function(x){ var p = x.split('|'); return { title: p[0], slug: p[1] || null, cov: p[1] ? GEN.COVERAGE[p[1]] : null }; }) };
+}
+function readyCount(sj, tn){ return sj.topics[tn].filter(function(x){ var p = x.split('|'); return p[1] && GEN.COVERAGE[p[1]]; }).length; }
+function mk(tag, cls, txt, fn){ var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; if (fn) e.addEventListener('click', function(ev){ ev.stopPropagation(); fn(); }); return e; }
+function drawGen(){
+  var L = subList(), tabs = $('gtabs'), tp = $('gtopics'), sb = $('gsubs');
+  tabs.innerHTML = ''; tp.innerHTML = ''; sb.innerHTML = '';
+  CAT.subjects.forEach(function(sj, i){ var b = mk('button', i === G.si ? 'sel' : '', sj.name.toUpperCase(), function(){ G.si = i; G.ti = 0; G.ui = 0; drawGen(); }); tabs.appendChild(b); });
+  L.names.forEach(function(n, i){
+    var r = mk('div', 'row' + (i === G.ti ? ' sel' : ''), null, function(){ G.ti = i; G.ui = 0; G.focus = 'subs'; drawGen(); });
+    r.appendChild(mk('span', '', n));
+    var rc = readyCount(L.sj, n); r.appendChild(mk('span', 'n', rc + '/' + L.sj.topics[n].length));
+    tp.appendChild(r);
+  });
+  L.subs.forEach(function(u, i){
+    var r = mk('div', 'row' + (i === G.ui ? ' sel' : '') + (u.cov ? '' : ' soon'), null, function(){ if (G.ui === i && u.cov) startGen(); else { G.ui = i; drawGen(); } });
+    r.appendChild(mk('span', '', u.title)); r.appendChild(mk('span', 'rd', u.cov ? 'READY' : 'SOON'));
+    sb.appendChild(r);
+  });
+  var cb = $('gcount'); cb.innerHTML = '';
+  [5, 10, 15, 20].forEach(function(n){ cb.appendChild(mk('button', n === G.count ? 'sel' : '', String(n), function(){ G.count = n; drawGen(); })); });
+  var lb = $('glevel'); lb.innerHTML = '';
+  ['AUTO', 'EASY', 'MEDIUM', 'HARD'].forEach(function(n, i){ lb.appendChild(mk('button', i === G.level ? 'sel' : '', n, function(){ G.level = i; drawGen(); })); });
+  var cur = L.subs[G.ui], go = $('ggo');
+  go.disabled = !(cur && cur.cov);
+  $('gmsg').textContent = !cur ? '' : cur.cov ? 'ENTER OR CLICK GENERATE  ·  ↑↓ CHOOSE  ·  ←→ TOPIC / SUBJECT' : 'NO GENERATOR YET FOR THIS TOPIC. DROP ITS WORKSHEET PDF IN TOOL 1 TO PRESENT IT NOW.';
+  var sel = sb.querySelector('.sel'); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+}
+function showGen(){ hideAll(); $('gen').hidden = false; drawGen(); }
+function startGen(seed){
+  var L = subList(), u = L.subs[G.ui];
+  if (!u || !u.cov) return;
+  var lvl = G.level ? G.level : u.cov.level;
+  var probs = GEN.generate(u.cov.kind, G.count, lvl, seed);
+  var d = makeData(u.cov.kind, 'Generated', probs);
+  d.title = u.title; d.file = 'Generated';
+  S.data = d; S.i = 0; S.s = 0; S.acrSeen = {}; S.doc = null; S.pages = null; S.textData = null; S.imgData = null; S.view = 'text';
+  S.origin = 'gen'; S.gen = { si: G.si, ti: G.ti, ui: G.ui };
+  showDrill();
+}
+function regen(){ if (S.origin !== 'gen' || !S.gen) return; startGen(); }
+
 /* ---------- events ---------- */
+$('tileWs').addEventListener('click', function(){ S.origin = 'pdf'; showStart(); });
+$('tileGen').addEventListener('click', showGen);
+$('genhome').addEventListener('click', showHome);
+$('starthome').addEventListener('click', showHome);
+$('ggo').addEventListener('click', function(){ startGen(); });
 var dropEl = $('drop'), fileEl = $('file');
 dropEl.addEventListener('click', function(){ fileEl.click(); });
 fileEl.addEventListener('change', function(){ var f = fileEl.files && fileEl.files[0]; fileEl.value = ''; readFile(f); });
@@ -611,14 +731,31 @@ document.addEventListener('keydown', function(e){
     else if (k === 'Escape') closeGoto();
     return;
   }
+  if (!$('home').hidden) {
+    if (k === '1') { S.origin = 'pdf'; showStart(); } else if (k === '2') showGen();
+    return;
+  }
+  if (!$('gen').hidden) {
+    var L = subList();
+    if (k === 'Escape') showHome();
+    else if (k === 'ArrowDown') { e.preventDefault(); G.ui = Math.min(L.subs.length - 1, G.ui + 1); drawGen(); }
+    else if (k === 'ArrowUp') { e.preventDefault(); G.ui = Math.max(0, G.ui - 1); drawGen(); }
+    else if (k === 'ArrowRight') { e.preventDefault(); if (G.ti < L.names.length - 1) { G.ti++; G.ui = 0; drawGen(); } }
+    else if (k === 'ArrowLeft') { e.preventDefault(); if (G.ti > 0) { G.ti--; G.ui = 0; drawGen(); } }
+    else if (k === 'Tab') { e.preventDefault(); G.si = (G.si + (e.shiftKey ? CAT.subjects.length - 1 : 1)) % CAT.subjects.length; G.ti = 0; G.ui = 0; drawGen(); }
+    else if (k === 'Enter') { e.preventDefault(); startGen(); }
+    return;
+  }
   if (!$('start').hidden) {
     if (k === 'm' || k === 'M') setMode(S.mode === 'guided' ? 'walk' : 'guided');
+    else if (k === 'Escape') showHome();
     return;
   }
   if ([' ', 'Enter', 'ArrowRight', 'ArrowDown', 'PageDown', 'n'].indexOf(k) >= 0) { e.preventDefault(); fwd(); }
   else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace', 'p'].indexOf(k) >= 0) { e.preventDefault(); back(); }
   else if (k === 'm' || k === 'M') setMode(S.mode === 'guided' ? 'walk' : 'guided');
   else if (k === 'o' || k === 'O') { toggleImage(); }
+  else if (k === 'r' || k === 'R') { regen(); }
   else if (k === 'l' || k === 'L') { S.layout = S.layout === 'board' ? 'boxes' : 'board'; try { localStorage.setItem('fd-layout', S.layout); } catch (er) {} render(); }
   else if (k === 'g' || k === 'G') { e.preventDefault(); openGoto(); }
   else if (k === 'Home') { e.preventDefault(); go(0); }
@@ -626,7 +763,7 @@ document.addEventListener('keydown', function(e){
   else if (k === 'f' || k === 'F') {
     try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (er) {}
   }
-  else if (k === 'Escape') { if (!document.fullscreenElement) showStart(); }
+  else if (k === 'Escape') { if (!document.fullscreenElement) { if (S.origin === 'gen') showGen(); else showStart(); } }
 });
 
 var idleT;
@@ -648,7 +785,7 @@ if (window.__PRELOAD__) {
   } catch (e) { status('Could not open the built-in worksheet: ' + e.message, true); }
 }
 // test hook: lets automated checks read state
-window.__fd = S;
+window.__fd = S; S.G = G; S.startGen = startGen;
 })();
 </script>
 </body></html>
