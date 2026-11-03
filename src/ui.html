@@ -116,6 +116,13 @@ body.moved #hint{display:none}
 .cc.st{text-decoration:line-through;text-decoration-thickness:.07em;opacity:.55}
 .rl{height:.07em;background:#fff;align-self:stretch;margin:.05em 0}
 .an .cc{color:var(--gold)}
+.pt .cc{color:#fff}
+.dvx .dsp{display:inline-block;width:1.2em;text-align:right;padding-right:.12em;color:var(--cream)}
+.dvx .dvs{color:#fff;border-right:.07em solid #fff;margin-right:.1em}
+.dvx .qd{color:var(--gold)}
+.dvx .bk{border-top:.07em solid #fff;box-sizing:border-box;line-height:1.02em}
+.dvx .ul{border-bottom:.07em solid #fff;box-sizing:border-box;line-height:1.02em}
+.dvx .rt{color:var(--gold);font-size:.6em;margin-left:.3em;white-space:nowrap}
 .an .ph{opacity:.28;color:#fff;font-size:.5em}
 #drill.colmode .rowwrap{left:96px;right:auto;width:560px;top:130px;height:700px}
 #drill.colmode .steps,#drill.colmode .board{left:700px;right:96px;top:140px;bottom:72px;align-items:flex-start;border-top:0;border-left:1px solid var(--line);padding:0 0 0 30px}
@@ -538,8 +545,26 @@ async function toggleImage(){
 }
 
 /* ---------- rendering ---------- */
+function divHtml(col, f){
+  var W = col.W, rowsN = 2 + f.rows.length, fs = Math.floor(Math.min(104, 640 / (1.15 * rowsN + 0.2), 540 / ((W + 2.2) * 0.62)));
+  var h = '<div class="col dvx" style="font-size:' + fs + 'px">';
+  var hd = function(c){ return f.hd.indexOf(c) >= 0 ? ' hi' : ''; };
+  h += '<div class="cl"><span class="dsp"></span>';
+  for (var c = 0; c < W; c++) h += '<span class="cc qd">' + (f.q[c] || '') + '</span>';
+  h += '<span class="rt">' + (f.rtxt || '') + '</span></div>';
+  h += '<div class="cl"><span class="dsp dvs">' + col.divisor + '</span>';
+  for (c = 0; c < W; c++) h += '<span class="cc bk' + hd(c) + '">' + col.dividend[c] + '</span>';
+  h += '</div>';
+  f.rows.forEach(function(r, ri){
+    h += '<div class="cl"><span class="dsp">' + (r.minus ? '−' : '') + '</span>';
+    for (var c2 = 0; c2 < W; c2++) h += '<span class="cc' + (r.ul && r.cells[c2] !== '' ? ' ul' : '') + (f.hr === ri ? (r.cells[c2] !== '' ? ' hi' : '') : '') + '">' + r.cells[c2] + '</span>';
+    h += '</div>';
+  });
+  return h + '</div>';
+}
 function colHtml(col, f){
-  var W = col.W, n = col.lines.length, H = 0.55 + 1.1 * n + 0.2 + 1.15, Wem = W * 0.62 + Math.floor((W - 1) / 3) * 0.3 + 0.8;
+  if (col.kind === 'div') return divHtml(col, f);
+  var W = col.W, n = col.lines.length, H = 0.55 + 1.1 * n + 0.2 + 1.15 + (col.parts ? 1.1 * col.parts + 0.2 : 0), Wem = W * 0.62 + Math.floor((W - 1) / 3) * 0.3 + 0.8;
   var fs = Math.floor(Math.min(104, 640 / H, 540 / Wem));
   function line(cls, fn, op, showCm){
     var h = '<div class="cl ' + cls + '"><span class="op">' + (op || '') + '</span>';
@@ -550,20 +575,24 @@ function colHtml(col, f){
     return h + '</div>';
   }
   var h = '<div class="col" style="font-size:' + fs + 'px">';
-  var hi = function(c){ return c === f.hi ? ' hi' : ''; };
-  var top = f.carry ? function(c){ return '<span class="cc' + hi(c) + '">' + (f.carry[c] || '') + '</span>'; }
-                    : function(c){ return '<span class="cc' + hi(c) + '">' + ((f.top[c] && f.top[c].nv) || '') + '</span>'; };
+  var hi = function(c, key){ return (f.hl ? f.hl[key] === c : c === f.hi) ? ' hi' : ''; };
+  var top = f.carry ? function(c){ return '<span class="cc">' + (f.carry[c] || '') + '</span>'; }
+                    : function(c){ return '<span class="cc' + hi(c, 'a') + '">' + ((f.top[c] && f.top[c].nv) || '') + '</span>'; };
   h += line('cr', top, '', function(){ return false; });
   col.lines.forEach(function(L, i){
     h += line('', function(c){
       var struck = f.top && i === 0 && f.top[c] && f.top[c].st;
-      return '<span class="cc' + hi(c) + (struck ? ' st' : '') + '">' + L.cells[c] + '</span>';
+      return '<span class="cc' + hi(c, i === 0 ? 'a' : 'b') + (struck ? ' st' : '') + '">' + L.cells[c] + '</span>';
     }, i === n - 1 ? col.op : '', function(c){ return L.cells[c] !== ''; });
   });
   h += '<div class="rl"></div>';
+  for (var pj = 0; pj < (col.parts || 0); pj++) (function(j){
+    h += line('pt', function(c){ var v = f.parts[j][c]; return '<span class="cc' + hi(c, 'p' + j) + '">' + (v || '') + '</span>'; }, '', function(c){ return f.parts[j][c] !== ''; });
+  })(pj);
+  if (col.parts) h += '<div class="rl"></div>';
   h += line('an', function(c){
     var v = f.ans[c];
-    return '<span class="cc' + hi(c) + '">' + (v !== '' ? v : (c < col.ansLen ? '<span class="ph">·</span>' : '')) + '</span>';
+    return '<span class="cc' + hi(c, 'ans') + '">' + (v !== '' ? v : (c < col.ansLen ? '<span class="ph">·</span>' : '')) + '</span>';
   }, '', function(c){ return f.ans[c] !== ''; });
   return h + '</div>';
 }
@@ -632,7 +661,7 @@ function render(){
   var sh = '';
   if (S.s === 0 && p.steps.length) sh = '<div class="waiting">' + (p.text != null ? 'Press → or click to reveal the answer' : 'Press → or click for step 1') + '</div>';
   else if (!p.steps.length) sh = '<div class="waiting">No answer on the sheet. Press → for the next question.</div>';
-  for (var i = (p.col && !board ? Math.max(0, S.s - 3) : 0); i < S.s; i++) {
+  for (var i = (p.col ? Math.max(0, S.s - (board ? 5 : 3)) : 0); i < S.s; i++) {
     var s = p.steps[i];
     var wk = expand(s.work, S.i + ':' + i);
     var bs = p.text != null ? (function(n){ return n > 150 ? 36 : n > 90 ? 44 : n > 50 ? 52 : 62; })(wk.replace(/<[^>]+>/g, '').length) : (p.col ? (Math.max.apply(null, wk.split('<br>').map(function(l){ return l.replace(/<[^>]+>/g, '').length; })) > 34 ? 38 : 46) : 62);

@@ -12,7 +12,9 @@
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
     order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
-    sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false }
+    sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false },
+    mul_cols: { label: 'MULTIPLY IN COLUMNS', title: 'Multiplying in Columns', whole: false, firstEq: false },
+    div_cols: { label: 'LONG DIVISION', title: 'Long Division', whole: false, firstEq: false }
   };
 
   function gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
@@ -310,7 +312,95 @@
     return { col: { op: '−', lines: [{ cells: cellsOf(a, W) }, { cells: cellsOf(b, W) }], W: W, ansLen: dl, frames: frames, answer: String(diff) }, slots: [], steps: steps };
   }
 
+  function solveMul(q) {
+    const a = q.a, b = q.b, prod = a * b, W = String(prod).length;
+    const aD = String(a).split('').reverse().map(Number), bD = String(b).split('').reverse().map(Number);
+    const n = aD.length, k = bD.length, blank = () => Array(W).fill('');
+    let ans = blank(), cr = blank(), parts = []; for (let j = 0; j < (k > 1 ? k : 0); j++) parts.push(blank());
+    const snap = hl => ({ hl: hl, ans: ans.slice(), carry: cr.slice(), parts: parts.map(p => p.slice()) });
+    const frames = [snap({})], steps = [];
+    for (let j = 0; j < k; j++) {
+      const m = bD[j], tgt = k === 1 ? ans : parts[j];
+      if (j > 0) {
+        for (let z = 0; z < j; z++) tgt[z] = '0';
+        cr = blank();
+        steps.push({ work: 'Multiply by the ' + PL[j] + ' digit: <b>' + m + '</b><br>put ' + (j === 1 ? 'a <b>0</b>' : j + ' <b>0</b>s') + ' first',
+          why: (j === 1 ? 'Tens' : j === 2 ? 'Hundreds' : CAP(PL[j])) + ' mean ' + (j === 1 ? 'ten' : j === 2 ? 'a hundred' : '10 × 10 × …') + ' times as much, so the ' + (j === 1 ? 'ones place holds a 0.' : 'places to the right hold 0s.') });
+        frames.push(snap({ b: j }));
+      }
+      let carry = 0;
+      for (let c = 0; c < n; c++) {
+        const t = aD[c], p = t * m, total = p + carry, last = c === n - 1;
+        const put = last ? String(total) : String(total % 10), out = last ? 0 : Math.floor(total / 10);
+        for (let x = 0; x < put.length; x++) tgt[c + j + x] = put[put.length - 1 - x];
+        if (out && c + 1 < W) cr[c + 1] = String(out);
+        const calc = t + ' × ' + m + ' = ' + p + (carry ? ', plus ' + carry + ' = ' + total : '');
+        const work = CAP(PL[c + j]) + ': ' + calc + '<br>' + (out ? 'write <b>' + put + '</b>, carry <b>' + out + '</b>' : 'write <b>' + put + '</b>');
+        let why;
+        if (out) why = total + ' ' + PL[c + j] + ' is ' + unit(out, c + j + 1) + ' and ' + unit(total % 10, c + j) + ', so write ' + (total % 10) + ' and carry ' + out + '.';
+        else if (last && total >= 10) why = 'There are no more digits to multiply, so write all of ' + total + '.';
+        else why = 'The total is under 10, so just write it.';
+        steps.push({ work: work, why: why });
+        carry = out;
+        frames.push(snap({ a: c, b: j, ['p' + j]: c + j }));
+      }
+    }
+    if (k > 1) {
+      const rows = parts.map(p => Number(p.slice().reverse().join('')));
+      ans = cellsOf(prod, W);
+      steps.push({ work: 'Add the rows<br>' + rows.map(fmtN).join(' + ') + ' = <b>' + fmtN(prod) + '</b>', why: 'Add the partial products to get the total.' });
+    } else {
+      steps.push({ work: 'Answer: <b>' + fmtN(prod) + '</b>', why: 'No more digits to multiply, so the answer is under the line.' });
+    }
+    frames.push(snap({}));
+    const lines = [{ cells: cellsOf(a, W) }, { cells: cellsOf(b, W) }];
+    return { col: { op: '×', lines: lines, W: W, ansLen: W, parts: k > 1 ? k : 0, frames: frames, answer: String(prod) }, slots: [], steps: steps };
+  }
+
+  /* ---------- long division (divisor 1 digit) ----------
+     col.kind === 'div'. Frames hold: q (quotient digit per column), rows (work rows under the bracket), hd (highlighted dividend columns), hr (highlighted row), rtxt. */
+  function solveDiv(q) {
+    const a = q.a, v = q.b, dg = String(a).split('').map(Number), n = dg.length;
+    const Q = Math.floor(a / v), R = a % v;
+    if (v < 1 || v > 9) throw new Error('One-digit divisors only.');
+    const qd = Array(n).fill(''), rows = [];
+    const snap = (hd, hr, rtxt) => ({ q: qd.slice(), rows: rows.map(r => ({ cells: r.cells.slice(), minus: r.minus, ul: r.ul })), hd: hd || [], hr: hr == null ? -1 : hr, rtxt: rtxt || '' });
+    const frames = [snap()], steps = [];
+    let s = 0, cur = dg[0]; while (cur < v && s < n - 1) { s++; cur = cur * 10 + dg[s]; }
+    let prevRem = 0;
+    const put = (str, col) => { const cells = Array(n).fill(''); for (let k = 0; k < str.length; k++) cells[col - k] = str[str.length - 1 - k]; return cells; };
+    for (let i = s; i < n; i++) {
+      const first = i === s, digit = Math.floor(cur / v), prod = digit * v, rem = cur - prod;
+      const startCol = first ? 0 : (prevRem > 0 || String(cur).length > 1 ? i - 1 : i);
+      const used = []; for (let c = startCol; c <= i; c++) used.push(c);
+      qd[i] = String(digit);
+      let work = String(cur) + ' ÷ ' + v + ' = <b>' + digit + '</b>';
+      if (first && s > 0) work = dg.slice(0, s).join('') + ' is too small, so use ' + cur + '<br>' + work;
+      const why = digit === 0 ? cur + ' is less than ' + v + ', so ' + v + ' fits 0 times. Write 0.'
+        : 'How many ' + v + 's fit in ' + cur + '? ' + v + ' × ' + digit + ' = ' + prod + '. Any more would be too big.';
+      steps.push({ work: work, why: why }); frames.push(snap(used, -1));
+      rows.push({ cells: put(String(prod), i), minus: true, ul: true });
+      steps.push({ work: v + ' × ' + digit + ' = <b>' + prod + '</b>', why: 'Write ' + prod + ' under ' + cur + ', lined up on the right.' });
+      frames.push(snap([], rows.length - 1));
+      rows.push({ cells: put(String(rem), i), minus: false, ul: false });
+      steps.push({ work: cur + ' − ' + prod + ' = <b>' + rem + '</b>', why: i === n - 1 ? (rem ? 'This is what is left over, the remainder.' : 'Nothing is left over, so there is no remainder.') : 'What is left over must be less than ' + v + '. ' + rem + ' is, so the digit is right.' });
+      frames.push(snap([], rows.length - 1));
+      if (i < n - 1) {
+        const nd = dg[i + 1], nxt = rem * 10 + nd;
+        rows[rows.length - 1].cells[i + 1] = String(nd);
+        steps.push({ work: 'Bring down <b>' + nd + '</b><br>new number: ' + nxt, why: 'Bring the next digit down next to the leftover.' });
+        frames.push(snap([i + 1], rows.length - 1));
+        prevRem = rem; cur = nxt;
+      }
+    }
+    steps.push({ work: 'Answer: <b>' + Q + (R ? ' R ' + R : '') + '</b>', why: 'Check: ' + v + ' × ' + Q + (R ? ' + ' + R : '') + ' = ' + a + '.' });
+    frames.push(snap([], -1, R ? 'R ' + R : ''));
+    return { col: { kind: 'div', W: n, divisor: v, dividend: dg.map(String), lines: [], frames: frames, answer: Q + (R ? ' R ' + R : '') }, slots: [], steps: steps };
+  }
+
   function solve(kind, q) {
+    if (kind === 'div_cols') return solveDiv(q);
+    if (kind === 'mul_cols') return solveMul(q);
     if (kind === 'add_cols') return solveAdd(q);
     if (kind === 'sub_cols') return solveSub(q);
     const n = q.num, d = q.den;

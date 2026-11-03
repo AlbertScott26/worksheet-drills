@@ -119,6 +119,32 @@
       }
       return best;
     },
+
+    mul_cols(r, L, o) {
+      o = o || { d1: 3, d2: 1 };
+      const dig = (d, lo, hi, leadLo) => { let t = String(r.int(Math.max(leadLo, 1), hi)); for (let i = 1; i < d; i++) t += r.int(lo, hi); return Number(t); };
+      const rg = L === 1 ? [0, 5, 1] : L === 2 ? [0, 9, 1] : [5, 9, 5];            /* digit low, high, leading low */
+      const mg = L === 1 ? [2, 4, 2] : L === 2 ? [2, 9, 2] : [6, 9, 6];
+      return { a: dig(o.d1, rg[0], rg[1], rg[2]), b: dig(o.d2, mg[0], mg[1], mg[2]) };
+    },
+
+    div_cols(r, L, o) {
+      o = o || { d: 2, rem: 'none' };
+      const lo = Math.pow(10, o.d - 1), hi = Math.pow(10, o.d) - 1;
+      for (let t = 0; t < 3000; t++) {
+        const v = L === 1 ? r.int(2, 5) : L === 3 ? r.int(6, 9) : r.int(2, 9);
+        const rem = o.rem === 'none' || o.rem === 'facts' ? 0 : (r.int(1, 8) > 1 || L === 3 ? r.int(1, v - 1) : 0);
+        const qlo = o.rem === 'facts' ? 2 : Math.ceil(lo / v), qhi = o.rem === 'facts' ? 9 : Math.floor((hi - rem) / v);
+        if (qhi < qlo) continue;
+        const qq = r.int(qlo, qhi), a = qq * v + rem, qs = String(qq);
+        if (a < v || (o.rem !== 'facts' && String(a).length !== o.d)) continue;
+        const zeros = qs.indexOf('0') >= 0;
+        if (L === 1 && zeros) continue;
+        if (L === 3 && o.d >= 3 && !zeros && t < 2000) continue;
+        return { a, b: v };
+      }
+      return { a: 84, b: 4 };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -168,6 +194,20 @@
     'subtract-from-1000': { kind: 'sub_cols', level: 2, opts: { mf: 'p1000' } },
     'subtract-from-whole-thousands': { kind: 'sub_cols', level: 2, opts: { mf: 'wholeK' } },
     'subtract-2-digit-number-from-whole-hundreds': { kind: 'sub_cols', level: 2, opts: { mf: 'wholeH' } },
+    'multiply-columns-1-digit-2-digit': { kind: 'mul_cols', level: 2, opts: { d1: 2, d2: 1 } },
+    'multiply-columns-1-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 1 } },
+    'multiply-columns-1-digit-4-digit': { kind: 'mul_cols', level: 2, opts: { d1: 4, d2: 1 } },
+    'multiply-columns-2-digit-2-digit': { kind: 'mul_cols', level: 2, opts: { d1: 2, d2: 2 } },
+    'multiply-columns-2-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 2 } },
+    'multiply-columns-2-digit-4-digit': { kind: 'mul_cols', level: 2, opts: { d1: 4, d2: 2 } },
+    'multiply-columns-3-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 3 } },
+    'long-division-basic-facts': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'facts' } },
+    'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
+    'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
+    'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },
+    'long-division-3x1-digit-with-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'maybe' } },
+    'long-division-4x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 4, rem: 'none' } },
+    'long-division-4x1-digit-with-remainder': { kind: 'div_cols', level: 2, opts: { d: 4, rem: 'maybe' } },
   };
 
   function generate(kind, count, level, seed, opts) {

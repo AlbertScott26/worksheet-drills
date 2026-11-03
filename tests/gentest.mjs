@@ -17,12 +17,19 @@ for (const [slug, cv] of Object.entries(G.COVERAGE)) for (const L of [1, 2, 3]) 
     total++;
     try {
       const sv = C.solve(cv.kind, p.q);
-      if (sv.col) {
-        const want = cv.kind === 'add_cols' ? p.q.addends.reduce((a, b) => a + b, 0) : p.q.a - p.q.b;
+      if (sv.col && sv.col.kind === 'div') {
+        const Qw = Math.floor(p.q.a / p.q.b), Rw = p.q.a % p.q.b, f1 = sv.col.frames[sv.col.frames.length - 1];
+        if (f1.q.join('').replace(/^0+/, '') !== String(Qw) || (f1.q.join('')[0] === '0')) throw new Error('quotient ' + f1.q.join('') + ' vs ' + Qw);
+        if ((f1.rtxt || '') !== (Rw ? 'R ' + Rw : '')) throw new Error('remainder text ' + f1.rtxt + ' vs ' + Rw);
+        if (sv.col.frames.length !== sv.steps.length + 1) throw new Error('frames/steps mismatch');
+        if (p.q.b < 2 || p.q.a < p.q.b) throw new Error('bad division problem');
+      } else if (sv.col) {
+        const want = cv.kind === 'add_cols' ? p.q.addends.reduce((a, b) => a + b, 0) : cv.kind === 'mul_cols' ? p.q.a * p.q.b : p.q.a - p.q.b;
         const last = sv.col.frames[sv.col.frames.length - 1], got = last.ans.slice().reverse().join('');
         if (String(want) !== got || sv.col.answer !== String(want)) throw new Error('wrong column answer ' + got + ' vs ' + want);
         if (sv.col.frames.length !== sv.steps.length + 1) throw new Error('frames/steps mismatch');
         if (cv.kind === 'sub_cols' && (p.q.a <= p.q.b)) throw new Error('negative');
+        if (cv.kind === 'mul_cols') { const f0 = sv.col.frames[sv.col.frames.length - 1]; if (sv.col.parts) { const sum = f0.parts.reduce((t2, row) => t2 + Number(row.slice().reverse().join('')), 0); if (sum !== want) throw new Error('partials sum ' + sum + ' vs ' + want); } }
       }
     } catch (e) { bad++; if (bad < 8) console.log('FAIL', slug, L, JSON.stringify(p.q), e.message); }
   }
