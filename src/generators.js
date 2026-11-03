@@ -145,6 +145,20 @@
       }
       return { a: 84, b: 4 };
     },
+    /* Quick facts. o = { op, x:[lo,hi], y:[lo,hi], miss:'r'|'x'|'y', scale }. Easy = lower half of each range, Hard = upper half.
+       Division: x = quotient range, y = divisor range, dividend = x*y. scale multiplies the first number by 10/100 (mental math). */
+    fact(r, L, o) {
+      o = o || { op: '*', x: [2, 9], y: [2, 9], miss: 'r' };
+      const part = (rg) => { const n = rg[1] - rg[0] + 1, h = Math.ceil(n / 2); return L === 1 ? [rg[0], rg[0] + h - 1] : L === 3 ? [rg[1] - h + 1, rg[1]] : rg; };
+      const X = part(o.x), Y = part(o.y), sc = o.scale || 1;
+      let a = r.int(X[0], X[1]) * sc, b = r.int(Y[0], Y[1]), t, ans;
+      if (o.op === '/') { const dv = b, qt = a / sc; a = qt * dv * sc; t = [a, dv]; ans = qt * sc; if (sc > 1) { t = [qt * dv * sc, dv]; ans = qt * sc; } }
+      else if (o.op === '+') { b = b * (o.bscale || 1); t = [a, b]; ans = a + b; }
+      else if (o.op === '-') { b = b * (o.bscale || 1); if (b > a) { const z = a; a = b; b = z; } if (a === b) a += (o.bscale || 1); t = [a, b]; ans = a - b; }
+      else { b = b * (o.bscale || 1); t = [a, b]; ans = a * b; }
+      let miss = o.miss || 'r'; if (miss === 'mix') miss = r.pick(['r', 'x', 'y']);
+      return { op: o.op, t: t, r: ans, miss: miss };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -201,7 +215,17 @@
     'multiply-columns-2-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 2 } },
     'multiply-columns-2-digit-4-digit': { kind: 'mul_cols', level: 2, opts: { d1: 4, d2: 2 } },
     'multiply-columns-3-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 3 } },
-    'long-division-basic-facts': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'facts' } },
+    'multiplication-table-2to10': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 10], y: [2, 10], miss: 'r' } },
+    'multiplication-table-2to12': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 12], y: [2, 12], miss: 'r' } },
+    'division-facts-1-to-10': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 10], y: [1, 10], miss: 'r' } },
+    'division-facts-1-to-12': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 12], y: [1, 12], miss: 'r' } },
+    'long-division-basic-facts': { kind: 'fact', level: 2, opts: { op: '/', x: [2, 9], y: [2, 9], miss: 'r' } },
+    'subtract-whole-tens': { kind: 'fact', level: 2, opts: { op: '-', x: [2, 9], y: [1, 8], miss: 'r', scale: 10, bscale: 10 } },
+    'adding-whole-hundreds': { kind: 'fact', level: 2, opts: { op: '+', x: [1, 9], y: [1, 9], miss: 'r', scale: 100, bscale: 100 } },
+    'multiply-whole-tens': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 9], y: [2, 9], miss: 'r', scale: 10 } },
+    'multiplication-table-2to10-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 10], y: [2, 10], miss: 'mix' } },
+    'multiplication-table-2to12-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 12], y: [2, 12], miss: 'mix' } },
+    'division-facts-missing-number-1-12': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 12], y: [1, 12], miss: 'mix' } },
     'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
     'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
     'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },

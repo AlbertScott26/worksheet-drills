@@ -11,6 +11,7 @@
     compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
     order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
+    fact: { label: 'QUICK FACTS', title: 'Quick Facts', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
     sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false },
     mul_cols: { label: 'MULTIPLY IN COLUMNS', title: 'Multiplying in Columns', whole: false, firstEq: false },
@@ -393,12 +394,26 @@
         prevRem = rem; cur = nxt;
       }
     }
-    steps.push({ work: 'Answer: <b>' + Q + (R ? ' R ' + R : '') + '</b>', why: 'Check: ' + v + ' × ' + Q + (R ? ' + ' + R : '') + ' = ' + a + '.' });
-    frames.push(snap([], -1, R ? 'R ' + R : ''));
-    return { col: { kind: 'div', W: n, divisor: v, dividend: dg.map(String), lines: [], frames: frames, answer: Q + (R ? ' R ' + R : '') }, slots: [], steps: steps };
+    steps.push({ work: 'Answer: <b>' + Q + (R ? ' r ' + R : '') + '</b>', why: 'Check: ' + v + ' × ' + Q + (R ? ' + ' + R : '') + ' = ' + a + '.' });
+    frames.push(snap([], -1, R ? 'r ' + R : ''));
+    return { col: { kind: 'div', W: n, divisor: v, dividend: dg.map(String), lines: [], frames: frames, answer: Q + (R ? ' r ' + R : '') }, slots: [], steps: steps };
   }
 
+  /* Quick facts: one equation, one hidden number. No steps; the slot is revealed in one press. */
+  function solveFact(q) {
+    const sym = { '+': '+', '-': '−', '*': '×', '/': '÷' }[q.op], t = q.t, r = q.r, row = [];
+    const v = x => ({ t: 'v', v: { w: x } }), op = s => ({ t: 'op', s: s });
+    let hidden;
+    if (q.miss === 'r') { t.forEach((x, i) => { if (i) row.push(op(sym)); row.push(v(x)); }); row.push(op('=')); row.push({ t: 'slot', k: 0 }); hidden = r; }
+    else {
+      const mi = q.miss === 'x' ? 0 : 1; hidden = t[mi];
+      t.forEach((x, i) => { if (i) row.push(op(sym)); row.push(i === mi ? { t: 'slot', k: 0 } : v(x)); });
+      row.push(op('=')); row.push(v(r));
+    }
+    return { row: row, slots: [{ v: { w: hidden } }], steps: [{ work: '', why: '', slot: 0 }], fact: true };
+  }
   function solve(kind, q) {
+    if (kind === 'fact') return solveFact(q);
     if (kind === 'div_cols') return solveDiv(q);
     if (kind === 'mul_cols') return solveMul(q);
     if (kind === 'add_cols') return solveAdd(q);
@@ -501,7 +516,7 @@
       return {
         slots: [{ v: { w: w, num: r, den: d } }],
         steps: [
-          { work: n + ' ÷ ' + d + ' = <b>' + w + '</b> R <b>' + r + '</b>', why: 'The fraction bar means divide: top ÷ bottom.' },
+          { work: n + ' ÷ ' + d + ' = <b>' + w + '</b> r <b>' + r + '</b>', why: 'The fraction bar means divide: top ÷ bottom.' },
           { work: 'Whole number: <b>' + w + '</b>', why: w + ' × ' + d + ' = ' + (w * d) + ', so ' + w + ' whole groups of ' + d + ' fit inside ' + n + '.' },
           { work: 'Leftover: ' + fr(r, d), why: 'The remainder ' + r + ' goes on top. The pieces are still ' + d + 'ths, so the bottom stays ' + d + '.' },
           { work: 'Answer: ' + mix(w, r, d), why: 'Check: ' + w + ' × ' + d + ' + ' + r + ' = ' + n + ' ✓', slot: 0 }
@@ -558,7 +573,7 @@
       return { slots: [{ v: { w: n2 } }], steps: steps };
     }
     const w = Math.floor(n2 / d2), r = n2 % d2;
-    steps.push({ work: n2 + ' ÷ ' + d2 + ' = <b>' + w + '</b> R <b>' + r + '</b>', why: 'Now change the improper fraction to a mixed number: top ÷ bottom.' });
+    steps.push({ work: n2 + ' ÷ ' + d2 + ' = <b>' + w + '</b> r <b>' + r + '</b>', why: 'Now change the improper fraction to a mixed number: top ÷ bottom.' });
     steps.push({ work: 'Answer: ' + mix(w, r, d2), why: 'Whole number ' + w + ', remainder ' + r + ' over ' + d2 + '. Check: ' + w + ' × ' + d2 + ' + ' + r + ' = ' + n2 + ' ✓', slot: 1 });
     return { slots: [{ v: { num: n2, den: d2 } }, { v: { w: w, num: r, den: d2 } }], steps: steps };
   }

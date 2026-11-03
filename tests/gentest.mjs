@@ -17,10 +17,15 @@ for (const [slug, cv] of Object.entries(G.COVERAGE)) for (const L of [1, 2, 3]) 
     total++;
     try {
       const sv = C.solve(cv.kind, p.q);
-      if (sv.col && sv.col.kind === 'div') {
+      if (cv.kind === 'fact') {
+        const q = p.q, ev = { '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b, '/': (a, b) => a / b }[q.op];
+        if (ev(q.t[0], q.t[1]) !== q.r || !Number.isInteger(q.r) || q.r <= 0 || q.t.some(x => x <= 0)) throw new Error('fact math ' + JSON.stringify(q));
+        const hid = q.miss === 'r' ? q.r : q.miss === 'x' ? q.t[0] : q.t[1];
+        if (sv.slots[0].v.w !== hid || !sv.fact || sv.steps.length !== 1) throw new Error('fact slot');
+      } else if (sv.col && sv.col.kind === 'div') {
         const Qw = Math.floor(p.q.a / p.q.b), Rw = p.q.a % p.q.b, f1 = sv.col.frames[sv.col.frames.length - 1];
         if (f1.q.join('').replace(/^0+/, '') !== String(Qw) || (f1.q.join('')[0] === '0')) throw new Error('quotient ' + f1.q.join('') + ' vs ' + Qw);
-        if ((f1.rtxt || '') !== (Rw ? 'R ' + Rw : '')) throw new Error('remainder text ' + f1.rtxt + ' vs ' + Rw);
+        if ((f1.rtxt || '') !== (Rw ? 'r ' + Rw : '')) throw new Error('remainder text ' + f1.rtxt + ' vs ' + Rw);
         if (sv.col.frames.length !== sv.steps.length + 1) throw new Error('frames/steps mismatch');
         if (p.q.b < 2 || p.q.a < p.q.b) throw new Error('bad division problem');
       } else if (sv.col) {

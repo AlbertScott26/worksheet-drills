@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta name="build-id" content="261103.2148-ccfbc65"><meta charset="utf-8">
+<html lang="en"><head><meta name="build-id" content="261103.2156-1b204e4"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Worksheet Drills</title>
 <style>
@@ -124,6 +124,10 @@ body.moved #hint{display:none}
 .dvx .ul{border-bottom:.07em solid #fff;box-sizing:border-box;line-height:1.02em}
 .dvx .rt{color:var(--gold);font-size:.6em;margin-left:.3em;white-space:nowrap}
 .an .ph{opacity:.28;color:#fff;font-size:.5em}
+#drill.factmode .rowwrap{top:150px;height:640px}
+#drill.factmode .nw{font-size:190px}
+#drill.factmode .eq{font-size:170px}
+#drill.factmode .qm{font-size:170px}
 #drill.colmode .rowwrap{left:96px;right:auto;width:560px;top:130px;height:700px}
 #drill.colmode .steps,#drill.colmode .board{left:700px;right:96px;top:140px;bottom:72px;align-items:flex-start;border-top:0;border-left:1px solid var(--line);padding:0 0 0 30px}
 #drill.colmode .bl{text-align:left}
@@ -324,6 +328,7 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
     order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
+    fact: { label: 'QUICK FACTS', title: 'Quick Facts', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
     sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false },
     mul_cols: { label: 'MULTIPLY IN COLUMNS', title: 'Multiplying in Columns', whole: false, firstEq: false },
@@ -706,12 +711,26 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
         prevRem = rem; cur = nxt;
       }
     }
-    steps.push({ work: 'Answer: <b>' + Q + (R ? ' R ' + R : '') + '</b>', why: 'Check: ' + v + ' × ' + Q + (R ? ' + ' + R : '') + ' = ' + a + '.' });
-    frames.push(snap([], -1, R ? 'R ' + R : ''));
-    return { col: { kind: 'div', W: n, divisor: v, dividend: dg.map(String), lines: [], frames: frames, answer: Q + (R ? ' R ' + R : '') }, slots: [], steps: steps };
+    steps.push({ work: 'Answer: <b>' + Q + (R ? ' r ' + R : '') + '</b>', why: 'Check: ' + v + ' × ' + Q + (R ? ' + ' + R : '') + ' = ' + a + '.' });
+    frames.push(snap([], -1, R ? 'r ' + R : ''));
+    return { col: { kind: 'div', W: n, divisor: v, dividend: dg.map(String), lines: [], frames: frames, answer: Q + (R ? ' r ' + R : '') }, slots: [], steps: steps };
   }
 
+  /* Quick facts: one equation, one hidden number. No steps; the slot is revealed in one press. */
+  function solveFact(q) {
+    const sym = { '+': '+', '-': '−', '*': '×', '/': '÷' }[q.op], t = q.t, r = q.r, row = [];
+    const v = x => ({ t: 'v', v: { w: x } }), op = s => ({ t: 'op', s: s });
+    let hidden;
+    if (q.miss === 'r') { t.forEach((x, i) => { if (i) row.push(op(sym)); row.push(v(x)); }); row.push(op('=')); row.push({ t: 'slot', k: 0 }); hidden = r; }
+    else {
+      const mi = q.miss === 'x' ? 0 : 1; hidden = t[mi];
+      t.forEach((x, i) => { if (i) row.push(op(sym)); row.push(i === mi ? { t: 'slot', k: 0 } : v(x)); });
+      row.push(op('=')); row.push(v(r));
+    }
+    return { row: row, slots: [{ v: { w: hidden } }], steps: [{ work: '', why: '', slot: 0 }], fact: true };
+  }
   function solve(kind, q) {
+    if (kind === 'fact') return solveFact(q);
     if (kind === 'div_cols') return solveDiv(q);
     if (kind === 'mul_cols') return solveMul(q);
     if (kind === 'add_cols') return solveAdd(q);
@@ -814,7 +833,7 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
       return {
         slots: [{ v: { w: w, num: r, den: d } }],
         steps: [
-          { work: n + ' ÷ ' + d + ' = <b>' + w + '</b> R <b>' + r + '</b>', why: 'The fraction bar means divide: top ÷ bottom.' },
+          { work: n + ' ÷ ' + d + ' = <b>' + w + '</b> r <b>' + r + '</b>', why: 'The fraction bar means divide: top ÷ bottom.' },
           { work: 'Whole number: <b>' + w + '</b>', why: w + ' × ' + d + ' = ' + (w * d) + ', so ' + w + ' whole groups of ' + d + ' fit inside ' + n + '.' },
           { work: 'Leftover: ' + fr(r, d), why: 'The remainder ' + r + ' goes on top. The pieces are still ' + d + 'ths, so the bottom stays ' + d + '.' },
           { work: 'Answer: ' + mix(w, r, d), why: 'Check: ' + w + ' × ' + d + ' + ' + r + ' = ' + n + ' ✓', slot: 0 }
@@ -871,7 +890,7 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
       return { slots: [{ v: { w: n2 } }], steps: steps };
     }
     const w = Math.floor(n2 / d2), r = n2 % d2;
-    steps.push({ work: n2 + ' ÷ ' + d2 + ' = <b>' + w + '</b> R <b>' + r + '</b>', why: 'Now change the improper fraction to a mixed number: top ÷ bottom.' });
+    steps.push({ work: n2 + ' ÷ ' + d2 + ' = <b>' + w + '</b> r <b>' + r + '</b>', why: 'Now change the improper fraction to a mixed number: top ÷ bottom.' });
     steps.push({ work: 'Answer: ' + mix(w, r, d2), why: 'Whole number ' + w + ', remainder ' + r + ' over ' + d2 + '. Check: ' + w + ' × ' + d2 + ' + ' + r + ' = ' + n2 + ' ✓', slot: 1 });
     return { slots: [{ v: { num: n2, den: d2 } }, { v: { w: w, num: r, den: d2 } }], steps: steps };
   }
@@ -1142,6 +1161,20 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
       }
       return { a: 84, b: 4 };
     },
+    /* Quick facts. o = { op, x:[lo,hi], y:[lo,hi], miss:'r'|'x'|'y', scale }. Easy = lower half of each range, Hard = upper half.
+       Division: x = quotient range, y = divisor range, dividend = x*y. scale multiplies the first number by 10/100 (mental math). */
+    fact(r, L, o) {
+      o = o || { op: '*', x: [2, 9], y: [2, 9], miss: 'r' };
+      const part = (rg) => { const n = rg[1] - rg[0] + 1, h = Math.ceil(n / 2); return L === 1 ? [rg[0], rg[0] + h - 1] : L === 3 ? [rg[1] - h + 1, rg[1]] : rg; };
+      const X = part(o.x), Y = part(o.y), sc = o.scale || 1;
+      let a = r.int(X[0], X[1]) * sc, b = r.int(Y[0], Y[1]), t, ans;
+      if (o.op === '/') { const dv = b, qt = a / sc; a = qt * dv * sc; t = [a, dv]; ans = qt * sc; if (sc > 1) { t = [qt * dv * sc, dv]; ans = qt * sc; } }
+      else if (o.op === '+') { b = b * (o.bscale || 1); t = [a, b]; ans = a + b; }
+      else if (o.op === '-') { b = b * (o.bscale || 1); if (b > a) { const z = a; a = b; b = z; } if (a === b) a += (o.bscale || 1); t = [a, b]; ans = a - b; }
+      else { b = b * (o.bscale || 1); t = [a, b]; ans = a * b; }
+      let miss = o.miss || 'r'; if (miss === 'mix') miss = r.pick(['r', 'x', 'y']);
+      return { op: o.op, t: t, r: ans, miss: miss };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -1198,7 +1231,17 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     'multiply-columns-2-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 2 } },
     'multiply-columns-2-digit-4-digit': { kind: 'mul_cols', level: 2, opts: { d1: 4, d2: 2 } },
     'multiply-columns-3-digit-3-digit': { kind: 'mul_cols', level: 2, opts: { d1: 3, d2: 3 } },
-    'long-division-basic-facts': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'facts' } },
+    'multiplication-table-2to10': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 10], y: [2, 10], miss: 'r' } },
+    'multiplication-table-2to12': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 12], y: [2, 12], miss: 'r' } },
+    'division-facts-1-to-10': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 10], y: [1, 10], miss: 'r' } },
+    'division-facts-1-to-12': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 12], y: [1, 12], miss: 'r' } },
+    'long-division-basic-facts': { kind: 'fact', level: 2, opts: { op: '/', x: [2, 9], y: [2, 9], miss: 'r' } },
+    'subtract-whole-tens': { kind: 'fact', level: 2, opts: { op: '-', x: [2, 9], y: [1, 8], miss: 'r', scale: 10, bscale: 10 } },
+    'adding-whole-hundreds': { kind: 'fact', level: 2, opts: { op: '+', x: [1, 9], y: [1, 9], miss: 'r', scale: 100, bscale: 100 } },
+    'multiply-whole-tens': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 9], y: [2, 9], miss: 'r', scale: 10 } },
+    'multiplication-table-2to10-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 10], y: [2, 10], miss: 'mix' } },
+    'multiplication-table-2to12-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 12], y: [2, 12], miss: 'mix' } },
+    'division-facts-missing-number-1-12': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 12], y: [1, 12], miss: 'mix' } },
     'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
     'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
     'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },
@@ -1393,7 +1436,7 @@ function makeData(kind, file, probs){
   var K = C.KINDS[kind];
   return {
     kind: kind, label: K.label, title: K.title, file: file,
-    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, col: sv.col, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
+    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, fact: sv.fact, row: sv.row, col: sv.col, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
   };
 }
 
@@ -1562,6 +1605,7 @@ function colHtml(col, f){
 }
 function part(v){
   var h = '';
+  if (v.w != null && v.num == null && !v.sym && v.w >= 1000) return '<span class="nw"><span class="whole">' + String(v.w).replace(/\B(?=(\d{3})+$)/g, ',') + '</span></span>';
   if (v.sym) return '<span class="nw"><span class="whole">' + (v.sym === '<' ? '&lt;' : v.sym === '>' ? '&gt;' : '=') + '</span></span>';
   if (v.w != null) h += '<span class="whole">' + v.w + '</span>';
   if (v.num != null && v.den != null) h += '<span class="frac"><span class="n">' + v.num + '</span><span class="d">' + v.den + '</span></span>';
@@ -1583,6 +1627,7 @@ function render(){
   if (p.img) { renderImage(D, p, N); return; }
   $('pic').hidden = true; document.querySelector('.rowwrap').style.display = ''; $('steps').style.display = '';
   $('drill').classList.toggle('colmode', !!p.col);
+  $('drill').classList.toggle('factmode', !!p.fact);
   var slotStep = p.slots.map(function(_, k){ return p.steps.findIndex(function(st){ return st.slot === k; }); });
 
   function slotHtml(k){
@@ -1623,9 +1668,10 @@ function render(){
   st.className = board ? 'board' : ('steps' + (guided ? '' : ' walk'));
   st.style.setProperty('--k', '1');
   var sh = '';
-  if (S.s === 0 && p.steps.length) sh = '<div class="waiting">' + (p.text != null ? 'Press → or click to reveal the answer' : 'Press → or click for step 1') + '</div>';
+  if (p.fact) sh = '';
+  else if (S.s === 0 && p.steps.length) sh = '<div class="waiting">' + (p.text != null ? 'Press → or click to reveal the answer' : 'Press → or click for step 1') + '</div>';
   else if (!p.steps.length) sh = '<div class="waiting">No answer on the sheet. Press → for the next question.</div>';
-  for (var i = (p.col ? Math.max(0, S.s - (board ? 5 : 3)) : 0); i < S.s; i++) {
+  for (var i = (p.fact ? S.s : p.col ? Math.max(0, S.s - (board ? 5 : 3)) : 0); i < S.s; i++) {
     var s = p.steps[i];
     var wk = expand(s.work, S.i + ':' + i);
     var bs = p.text != null ? (function(n){ return n > 150 ? 36 : n > 90 ? 44 : n > 50 ? 52 : 62; })(wk.replace(/<[^>]+>/g, '').length) : (p.col ? (Math.max.apply(null, wk.split('<br>').map(function(l){ return l.replace(/<[^>]+>/g, '').length; })) > 34 ? 38 : 46) : 62);
@@ -1637,14 +1683,14 @@ function render(){
 
   guard();
   var chip = $('chip');
-  chip.className = 'chip ' + (guided ? 'guided' : 'walk');
-  chip.textContent = guided ? 'GUIDED · WITH REASONING' : (board ? 'WALK-THROUGH · ON THE BOARD' : 'WALK-THROUGH · STEP BOXES');
+  chip.className = 'chip ' + (p.fact || guided ? 'guided' : 'walk');
+  chip.textContent = p.fact ? 'QUICK FACTS · GUESS, THEN REVEAL' : guided ? 'GUIDED · WITH REASONING' : (board ? 'WALK-THROUGH · ON THE BOARD' : 'WALK-THROUGH · STEP BOXES');
   $('hl').textContent = p.hdr || D.label;
   $('hr').textContent = '#' + (i0() + 1) + ' OF ' + N;
   $('foot').textContent = D.title.toUpperCase();
-  $('footr').textContent = p.steps.length ? (p.text != null && p.steps.length === 1 ? (S.s ? 'ANSWER SHOWN' : 'ANSWER HIDDEN') : 'STEP ' + S.s + ' OF ' + p.steps.length) : 'NO ANSWER KEY';
+  $('footr').textContent = p.steps.length ? ((p.text != null || p.fact) && p.steps.length === 1 ? (S.s ? 'ANSWER SHOWN' : 'ANSWER HIDDEN') : 'STEP ' + S.s + ' OF ' + p.steps.length) : 'NO ANSWER KEY';
   $('prog').style.width = ((S.i + (p.steps.length ? S.s / p.steps.length : 0)) / N * 100) + '%';
-  $('fw').innerHTML = (S.s < p.steps.length ? (p.text != null && p.steps.length === 1 ? 'SHOW ANSWER' : 'NEXT STEP') : (S.i < N - 1 ? (p.text != null ? 'NEXT QUESTION' : 'NEXT PROBLEM') : 'END')) + ' &#9654;';
+  $('fw').innerHTML = (S.s < p.steps.length ? ((p.text != null || p.fact) && p.steps.length === 1 ? 'SHOW ANSWER' : 'NEXT STEP') : (S.i < N - 1 ? (p.text != null || p.fact ? 'NEXT QUESTION' : 'NEXT PROBLEM') : 'END')) + ' &#9654;';
 }
 /* Layout guard: runs after every render. Repairs what it can and records anything it had to fix in S.guardLog,
    so a bad size can never reach the TV unnoticed (tests fail if the log is not empty on healthy pages). */
@@ -1741,7 +1787,7 @@ function drawGen(){
     sb.appendChild(r);
   });
   var cb = $('gcount'); cb.innerHTML = '';
-  [5, 10, 15, 20].forEach(function(n){ cb.appendChild(mk('button', n === G.count ? 'sel' : '', String(n), function(){ G.count = n; drawGen(); })); });
+  [5, 10, 15, 20, 30].forEach(function(n){ cb.appendChild(mk('button', n === G.count ? 'sel' : '', String(n), function(){ G.count = n; drawGen(); })); });
   var lb = $('glevel'); lb.innerHTML = '';
   ['AUTO', 'EASY', 'MEDIUM', 'HARD'].forEach(function(n, i){ lb.appendChild(mk('button', i === G.level ? 'sel' : '', n, function(){ G.level = i; drawGen(); })); });
   var cur = L.subs[G.ui], go = $('ggo');
