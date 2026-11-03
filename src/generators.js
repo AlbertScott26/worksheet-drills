@@ -12,6 +12,23 @@
     return f;
   }
 
+
+  /* ---------- column arithmetic helpers ---------- */
+  const pickD = (r, d) => Array.isArray(d) ? r.pick(d) : d;
+  const nDigits = (r, d) => { let t = String(r.int(1, 9)); for (let i = 1; i < d; i++) t += r.int(0, 9); return Number(t); };
+  function carryCount(A) {
+    let c = 0, n = 0; const W = Math.max.apply(null, A.map(x => String(x).length));
+    for (let i = 0; i < W; i++) { let t = c; A.forEach(x => { const t2 = String(x), k = t2.length - 1 - i; if (k >= 0) t += +t2[k]; }); c = Math.floor(t / 10); if (c) n++; }
+    return n;
+  }
+  function borrowCount(a, b) {
+    const cur = String(a).split('').reverse().map(Number), B = String(b).split('').reverse().map(Number); let n = 0;
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i] < (B[i] || 0)) { n++; let j = i + 1; while (cur[j] === 0) j++; cur[j]--; for (let k = i + 1; k < j; k++) cur[k] = 9; cur[i] += 10; }
+    }
+    return n;
+  }
+
   const DEN = { 1: [2, 3, 4, 5, 6], 2: [2, 3, 4, 5, 6, 8, 10], 3: [3, 4, 5, 6, 7, 8, 9, 10, 12] };
 
   const GEN = {
@@ -70,6 +87,38 @@
       const b = r.pick(L === 1 ? [2, 3, 4] : L === 2 ? [2, 3, 4, 5, 6] : [3, 4, 5, 6, 7, 8, 9]);
       return { a: r.int(1, L === 1 ? 1 : b - 1), b, N: b * r.int(2, L === 1 ? 4 : L === 2 ? 6 : 9) };
     },
+
+    add_cols(r, L, o) {
+      o = o || { n: 2, d: 3 };
+      const d = pickD(r, o.d), n = o.n || 2;
+      let best = null;
+      for (let t = 0; t < 1500; t++) {
+        const A = []; for (let i = 0; i < n; i++) A.push(nDigits(r, d));
+        const k = carryCount(A);
+        best = A;
+        if (L === 1 ? k <= Math.max(1, Math.ceil(d / 3)) : L === 2 ? k >= 1 : k >= Math.min(d, d + n - 3)) break;
+      }
+      return { addends: best };
+    },
+    sub_cols(r, L, o) {
+      o = o || { d: 3 };
+      const mf = o.mf || 'rand';
+      let best = null;
+      for (let t = 0; t < 2500; t++) {
+        let a, b, d = pickD(r, o.d || 3);
+        if (mf === 'zeros2') { a = r.int(2, 9) * 1000 + r.int(1, 8); b = nDigits(r, 4); }
+        else if (mf === 'zeros3') { a = r.int(2, 9) * 10000 + r.int(1, 8); b = nDigits(r, r.pick([4, 5])); }
+        else if (mf === 'p1000') { a = 1000; b = nDigits(r, r.pick([2, 3, 3])); }
+        else if (mf === 'wholeK') { a = r.int(2, 9) * 1000; b = nDigits(r, r.pick([3, 4])); }
+        else if (mf === 'wholeH') { a = r.int(2, 9) * 100; b = nDigits(r, 2); }
+        else { a = nDigits(r, d); b = nDigits(r, o.sd || d); }
+        if (b >= a) continue;
+        const k = borrowCount(a, b); best = { a, b };
+        if (mf !== 'rand') { if (k >= 1) break; continue; }
+        if (L === 1 ? k === 1 : L === 2 ? k >= 1 : k >= Math.max(1, d - 1)) break;
+      }
+      return best;
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -98,13 +147,33 @@
     'comparing-mixed-numbers-and-fractions': { kind: 'compare_mixed', level: 2 },
     'comparing-fractions-improper-mixed': { kind: 'compare_mixed', level: 3 },
     'ordering-3-fractions': { kind: 'order3', level: 2 },
-    'fractional-part-of-set': { kind: 'fraction_of_set', level: 2 }
+    'fractional-part-of-set': { kind: 'fraction_of_set', level: 2 },
+    'add-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 2, d: 3 } },
+    'add-3-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 3, d: 3 } },
+    'add-4-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 4, d: 3 } },
+    'add-5-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 5, d: 3 } },
+    'add-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 2, d: 4 } },
+    'add-3-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 3, d: 4 } },
+    'add-4-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 4, d: 4 } },
+    'add-5-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 5, d: 4 } },
+    'add-5or6-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 2, d: [5, 6] } },
+    'add-three-5or6-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 3, d: [5, 6] } },
+    'add-four-5or6-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 4, d: [5, 6] } },
+    'subtract-2-digit-numbers': { kind: 'sub_cols', level: 2, opts: { d: 2 } },
+    'subtract-3-digit-numbers-with-regrouping': { kind: 'sub_cols', level: 2, opts: { d: 3 } },
+    'subtract-4-digit-numbers-with-regrouping': { kind: 'sub_cols', level: 2, opts: { d: 4 } },
+    'subtract-5or6-digit-numbers': { kind: 'sub_cols', level: 2, opts: { d: [5, 6] } },
+    'subtract-borrow-across-2-zeros': { kind: 'sub_cols', level: 2, opts: { mf: 'zeros2' } },
+    'subtract-borrow-across-3-zeros': { kind: 'sub_cols', level: 2, opts: { mf: 'zeros3' } },
+    'subtract-from-1000': { kind: 'sub_cols', level: 2, opts: { mf: 'p1000' } },
+    'subtract-from-whole-thousands': { kind: 'sub_cols', level: 2, opts: { mf: 'wholeK' } },
+    'subtract-2-digit-number-from-whole-hundreds': { kind: 'sub_cols', level: 2, opts: { mf: 'wholeH' } },
   };
 
-  function generate(kind, count, level, seed) {
+  function generate(kind, count, level, seed, opts) {
     const r = rng(seed == null ? Math.floor(Math.random() * 4294967296) : seed), out = [], seen = {};
     for (let i = 0, guard = 0; out.length < count && guard < count * 60; guard++) {
-      const q = GEN[kind](r, level), key = JSON.stringify(q);
+      const q = GEN[kind](r, level, opts), key = JSON.stringify(q);
       if (seen[key]) continue;                       /* no repeated problems on one sheet */
       seen[key] = 1; out.push({ q }); i++;
     }

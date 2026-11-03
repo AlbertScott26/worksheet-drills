@@ -46,4 +46,5 @@ An engine needs a real sample of that topic. Send one sheet per topic and it is 
 - **Catalog** (`catalog/k5-grade4.json`): K5 Grade 4 subject > topic > sub-topic tree. Math 17 topics / 230 sub-topics; reading, vocabulary, spelling, grammar & writing are listed by name only. Same crawl works for other grades by changing the index URL.
 - **Generators** (`src/generators.js`): one random-problem generator per engine kind; `COVERAGE` maps a K5 slug to `{kind, level}`. A sub-topic is READY when it has an entry, otherwise SOON.
 - **Adding a topic family** = add the engine (core.js) + a generator (generators.js) + `COVERAGE` entries. Then both tools get it.
-- Currently READY: 13 of 230 math sub-topics (all fractions).
+- Currently READY: 33 of 230 math sub-topics: 13 fractions, 11 column addition (2-5 addends, 3-6 digits), 9 column subtraction (regrouping, zeros, from 1000).
+- Column arithmetic shows a stacked problem on the left with per-column frames (`col.frames` from `solve`) and steps on the right.

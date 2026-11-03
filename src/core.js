@@ -10,7 +10,9 @@
     compare: { label: 'COMPARING FRACTIONS', title: 'Comparing Fractions', whole: false, firstEq: false },
     compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
-    order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false }
+    order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
+    add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
+    sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false }
   };
 
   function gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
@@ -233,7 +235,84 @@
   const GCF_WHY = 'The GCF is the biggest number that divides both evenly.';
 
   /* Returns {slots:[{v}], steps:[{work, why, slot?}]}. A step with `slot: k` fills answer slot k. */
+
+  /* ---------- column arithmetic (add / subtract) ----------
+     solve returns { col: { op, lines, W, ansLen, frames }, slots: [], steps }.
+     frames[k] is what the board shows after k steps (frames.length === steps.length + 1). */
+  const PL = ['ones', 'tens', 'hundreds', 'thousands', 'ten thousands', 'hundred thousands', 'millions'];
+  const PS = ['one', 'ten', 'hundred', 'thousand', 'ten thousand', 'hundred thousand', 'million'];
+  const CAP = w => w.charAt(0).toUpperCase() + w.slice(1);
+  const unit = (n, c) => n + ' ' + (n === 1 ? PS[c] : PL[c]);
+  const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const cellsOf = (n, W) => { const t = String(n), o = []; for (let c = 0; c < W; c++) o.push(c < t.length ? t[t.length - 1 - c] : ''); return o; };
+
+  function solveAdd(q) {
+    const A = q.addends, sum = A.reduce((x, y) => x + y, 0), W = String(sum).length;
+    const maxLen = Math.max.apply(null, A.map(n => String(n).length));
+    const lines = A.map(n => ({ cells: cellsOf(n, W) }));
+    const blank = () => Array(W).fill('');
+    let carry = 0, ans = blank(), cr = blank();
+    const frames = [{ hi: -1, ans: ans.slice(), carry: cr.slice() }], steps = [];
+    for (let c = 0; c < maxLen; c++) {
+      const ds = lines.map(l => l.cells[c]).filter(x => x !== '').map(Number);
+      const total = carry + ds.reduce((x, y) => x + y, 0), last = c === maxLen - 1;
+      const terms = (carry ? [carry] : []).concat(ds);
+      const put = (last || total < 10) ? String(total) : String(total % 10);
+      for (let k = 0; k < put.length; k++) ans[c + k] = put[put.length - 1 - k];
+      const out = (last || total < 10) ? 0 : Math.floor(total / 10);
+      if (out && c + 1 < W) cr[c + 1] = String(out);
+      let work = CAP(PL[c]) + ': ' + terms.join(' + ') + ' = ' + total + '<br>' + (out ? 'write <b>' + put + '</b>, carry <b>' + out + '</b>' : 'write <b>' + put + '</b>');
+      let why;
+      if (out) why = total + ' ' + PL[c] + ' is ' + unit(out, c + 1) + ' and ' + unit(total % 10, c) + ', so write ' + (total % 10) + ' and carry ' + out + '.';
+      else if (last && total >= 10) why = 'There is no column to the left, so write all of ' + total + '.';
+      else if (carry) why = 'Add the carried ' + carry + ' too. The total is under 10, so write it.';
+      else why = 'The total is under 10, so just write it.';
+      steps.push({ work: work, why: why });
+      carry = out;
+      frames.push({ hi: c, ans: ans.slice(), carry: cr.slice() });
+    }
+    steps.push({ work: 'Answer: <b>' + fmtN(sum) + '</b>', why: 'No more columns, so the answer is the number under the line.' });
+    frames.push({ hi: -1, ans: ans.slice(), carry: cr.slice() });
+    return { col: { op: '+', lines: lines, W: W, ansLen: W, frames: frames, answer: String(sum) }, slots: [], steps: steps };
+  }
+
+  function solveSub(q) {
+    const a = q.a, b = q.b, diff = a - b, W = String(a).length, dl = String(diff).length;
+    if (diff <= 0) throw new Error('Subtraction needs a bigger top number.');
+    const top = cellsOf(a, W).map(Number), bot = cellsOf(b, W), cur = top.slice();
+    const nv = Array(W).fill(''), st = Array(W).fill(false), ans = Array(W).fill('');
+    const snap = hi => ({ hi: hi, ans: ans.slice(), top: nv.map((v, i) => ({ nv: v, st: st[i] })) });
+    const frames = [snap(-1)], steps = [];
+    for (let c = 0; c < W; c++) {
+      const bd = bot[c] === '' ? 0 : Number(bot[c]);
+      let regrouped = false;
+      if (cur[c] < bd) {
+        let j = c + 1; while (cur[j] === 0) j++;
+        const before = cur.slice(), ch = [];
+        cur[j] -= 1; for (let k = c + 1; k < j; k++) cur[k] = 9; cur[c] += 10;
+        for (let k = j; k >= c; k--) { nv[k] = String(cur[k]); st[k] = true; ch.push(PL[k] + ' ' + before[k] + ' → <b>' + cur[k] + '</b>'); }
+        const work = CAP(PL[c]) + ': ' + before[c] + ' is less than ' + bd + '<br>regroup: ' + ch.join(', ');
+        const why = j === c + 1 ? 'Not enough ' + PL[c] + '. Trade 1 ' + PS[j] + ' for 10 ' + PL[c] + '.'
+          : 'The next columns are 0, so borrow from the ' + PL[j] + '. Each 0 in between becomes 9.';
+        steps.push({ work: work, why: why }); frames.push(snap(c));
+        regrouped = true;
+      }
+      const r = cur[c] - bd, lead = c >= dl;
+      if (!lead) ans[c] = String(r);
+      let work, why;
+      if (bot[c] === '') { work = CAP(PL[c]) + ': nothing to subtract<br>bring down <b>' + (lead ? '' : r) + '</b>'; why = 'There is no bottom digit here, so bring the top digit down.'; }
+      else { work = CAP(PL[c]) + ': ' + cur[c] + ' − ' + bd + ' = <b>' + r + '</b>'; why = regrouped ? 'Now there are enough ' + PL[c] + ', so subtract.' : (nv[c] ? 'Use the new digit after trading, then subtract.' : 'Subtract the digits in the ' + PL[c] + ' column.'); }
+      if (lead) { work = CAP(PL[c]) + ': ' + cur[c] + ' − ' + bd + ' = 0'; why = 'A zero at the front is not written.'; }
+      steps.push({ work: work, why: why }); frames.push(snap(c));
+    }
+    steps.push({ work: 'Answer: <b>' + fmtN(diff) + '</b>', why: 'Check: ' + fmtN(diff) + ' + ' + fmtN(b) + ' = ' + fmtN(a) + '.' });
+    frames.push(snap(-1));
+    return { col: { op: '−', lines: [{ cells: cellsOf(a, W) }, { cells: cellsOf(b, W) }], W: W, ansLen: dl, frames: frames, answer: String(diff) }, slots: [], steps: steps };
+  }
+
   function solve(kind, q) {
+    if (kind === 'add_cols') return solveAdd(q);
+    if (kind === 'sub_cols') return solveSub(q);
     const n = q.num, d = q.den;
     if (kind === 'compare' || kind === 'compare_mixed') {
       const steps = [];

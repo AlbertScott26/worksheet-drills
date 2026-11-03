@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta name="build-id" content="261103.2123-0ca1a18"><meta charset="utf-8">
+<html lang="en"><head><meta name="build-id" content="261103.2138-8f3c41c"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Worksheet Drills</title>
 <style>
@@ -101,6 +101,27 @@ body.moved #hint{display:none}
 #goto .box{background:var(--panel);border:2px solid var(--gold);padding:28px 40px;text-align:center}
 #goto .lbl{font:600 20px/1 var(--mono);letter-spacing:.08em;margin-bottom:18px}
 #goto input{width:220px;font:700 64px/1.1 var(--body);text-align:center;color:#fff;background:var(--bg);border:1px solid var(--line);padding:8px;user-select:text;-webkit-user-select:text}
+
+/* ---------- column arithmetic ---------- */
+.col{display:flex;flex-direction:column;align-items:flex-start;font:700 90px/1.1 var(--body);position:relative}
+.cl{display:flex;align-items:center;height:1.1em}
+.cl.cr{height:.55em;font-size:.5em;color:var(--cream);height:1.1em}
+.cc{display:inline-block;width:.62em;text-align:center;height:1.1em;line-height:1.1em}
+.cr .cc{width:1.24em}
+.cr .op{width:1.6em}
+.cm{display:inline-block;width:.3em;text-align:center;color:var(--cream);font-size:.7em;line-height:1.6}
+.cr .cm{width:.6em}
+.op{display:inline-block;width:.8em;text-align:center;color:var(--cream)}
+.cc.hi{background:var(--panel)}
+.cc.st{text-decoration:line-through;text-decoration-thickness:.07em;opacity:.55}
+.rl{height:.07em;background:#fff;align-self:stretch;margin:.05em 0}
+.an .cc{color:var(--gold)}
+.an .ph{opacity:.28;color:#fff;font-size:.5em}
+#drill.colmode .rowwrap{left:96px;right:auto;width:560px;top:130px;height:700px}
+#drill.colmode .steps,#drill.colmode .board{left:700px;right:96px;top:140px;bottom:72px;align-items:flex-start;border-top:0;border-left:1px solid var(--line);padding:0 0 0 30px}
+#drill.colmode .bl{text-align:left}
+#drill.colmode .st{grid-template-columns:44px 1fr}
+#drill.colmode .st .why{grid-column:2}
 
 /* ---------- home + generator ---------- */
 #upd{position:absolute;left:96px;right:96px;top:128px;padding:16px 22px;background:var(--panel);border:3px solid var(--gold);font:700 20px/1.2 var(--mono);letter-spacing:.06em;color:#fff;cursor:pointer;text-align:center;z-index:30}
@@ -295,7 +316,9 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     compare: { label: 'COMPARING FRACTIONS', title: 'Comparing Fractions', whole: false, firstEq: false },
     compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
-    order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false }
+    order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
+    add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
+    sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false }
   };
 
   function gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
@@ -518,7 +541,84 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
   const GCF_WHY = 'The GCF is the biggest number that divides both evenly.';
 
   /* Returns {slots:[{v}], steps:[{work, why, slot?}]}. A step with `slot: k` fills answer slot k. */
+
+  /* ---------- column arithmetic (add / subtract) ----------
+     solve returns { col: { op, lines, W, ansLen, frames }, slots: [], steps }.
+     frames[k] is what the board shows after k steps (frames.length === steps.length + 1). */
+  const PL = ['ones', 'tens', 'hundreds', 'thousands', 'ten thousands', 'hundred thousands', 'millions'];
+  const PS = ['one', 'ten', 'hundred', 'thousand', 'ten thousand', 'hundred thousand', 'million'];
+  const CAP = w => w.charAt(0).toUpperCase() + w.slice(1);
+  const unit = (n, c) => n + ' ' + (n === 1 ? PS[c] : PL[c]);
+  const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const cellsOf = (n, W) => { const t = String(n), o = []; for (let c = 0; c < W; c++) o.push(c < t.length ? t[t.length - 1 - c] : ''); return o; };
+
+  function solveAdd(q) {
+    const A = q.addends, sum = A.reduce((x, y) => x + y, 0), W = String(sum).length;
+    const maxLen = Math.max.apply(null, A.map(n => String(n).length));
+    const lines = A.map(n => ({ cells: cellsOf(n, W) }));
+    const blank = () => Array(W).fill('');
+    let carry = 0, ans = blank(), cr = blank();
+    const frames = [{ hi: -1, ans: ans.slice(), carry: cr.slice() }], steps = [];
+    for (let c = 0; c < maxLen; c++) {
+      const ds = lines.map(l => l.cells[c]).filter(x => x !== '').map(Number);
+      const total = carry + ds.reduce((x, y) => x + y, 0), last = c === maxLen - 1;
+      const terms = (carry ? [carry] : []).concat(ds);
+      const put = (last || total < 10) ? String(total) : String(total % 10);
+      for (let k = 0; k < put.length; k++) ans[c + k] = put[put.length - 1 - k];
+      const out = (last || total < 10) ? 0 : Math.floor(total / 10);
+      if (out && c + 1 < W) cr[c + 1] = String(out);
+      let work = CAP(PL[c]) + ': ' + terms.join(' + ') + ' = ' + total + '<br>' + (out ? 'write <b>' + put + '</b>, carry <b>' + out + '</b>' : 'write <b>' + put + '</b>');
+      let why;
+      if (out) why = total + ' ' + PL[c] + ' is ' + unit(out, c + 1) + ' and ' + unit(total % 10, c) + ', so write ' + (total % 10) + ' and carry ' + out + '.';
+      else if (last && total >= 10) why = 'There is no column to the left, so write all of ' + total + '.';
+      else if (carry) why = 'Add the carried ' + carry + ' too. The total is under 10, so write it.';
+      else why = 'The total is under 10, so just write it.';
+      steps.push({ work: work, why: why });
+      carry = out;
+      frames.push({ hi: c, ans: ans.slice(), carry: cr.slice() });
+    }
+    steps.push({ work: 'Answer: <b>' + fmtN(sum) + '</b>', why: 'No more columns, so the answer is the number under the line.' });
+    frames.push({ hi: -1, ans: ans.slice(), carry: cr.slice() });
+    return { col: { op: '+', lines: lines, W: W, ansLen: W, frames: frames, answer: String(sum) }, slots: [], steps: steps };
+  }
+
+  function solveSub(q) {
+    const a = q.a, b = q.b, diff = a - b, W = String(a).length, dl = String(diff).length;
+    if (diff <= 0) throw new Error('Subtraction needs a bigger top number.');
+    const top = cellsOf(a, W).map(Number), bot = cellsOf(b, W), cur = top.slice();
+    const nv = Array(W).fill(''), st = Array(W).fill(false), ans = Array(W).fill('');
+    const snap = hi => ({ hi: hi, ans: ans.slice(), top: nv.map((v, i) => ({ nv: v, st: st[i] })) });
+    const frames = [snap(-1)], steps = [];
+    for (let c = 0; c < W; c++) {
+      const bd = bot[c] === '' ? 0 : Number(bot[c]);
+      let regrouped = false;
+      if (cur[c] < bd) {
+        let j = c + 1; while (cur[j] === 0) j++;
+        const before = cur.slice(), ch = [];
+        cur[j] -= 1; for (let k = c + 1; k < j; k++) cur[k] = 9; cur[c] += 10;
+        for (let k = j; k >= c; k--) { nv[k] = String(cur[k]); st[k] = true; ch.push(PL[k] + ' ' + before[k] + ' → <b>' + cur[k] + '</b>'); }
+        const work = CAP(PL[c]) + ': ' + before[c] + ' is less than ' + bd + '<br>regroup: ' + ch.join(', ');
+        const why = j === c + 1 ? 'Not enough ' + PL[c] + '. Trade 1 ' + PS[j] + ' for 10 ' + PL[c] + '.'
+          : 'The next columns are 0, so borrow from the ' + PL[j] + '. Each 0 in between becomes 9.';
+        steps.push({ work: work, why: why }); frames.push(snap(c));
+        regrouped = true;
+      }
+      const r = cur[c] - bd, lead = c >= dl;
+      if (!lead) ans[c] = String(r);
+      let work, why;
+      if (bot[c] === '') { work = CAP(PL[c]) + ': nothing to subtract<br>bring down <b>' + (lead ? '' : r) + '</b>'; why = 'There is no bottom digit here, so bring the top digit down.'; }
+      else { work = CAP(PL[c]) + ': ' + cur[c] + ' − ' + bd + ' = <b>' + r + '</b>'; why = regrouped ? 'Now there are enough ' + PL[c] + ', so subtract.' : (nv[c] ? 'Use the new digit after trading, then subtract.' : 'Subtract the digits in the ' + PL[c] + ' column.'); }
+      if (lead) { work = CAP(PL[c]) + ': ' + cur[c] + ' − ' + bd + ' = 0'; why = 'A zero at the front is not written.'; }
+      steps.push({ work: work, why: why }); frames.push(snap(c));
+    }
+    steps.push({ work: 'Answer: <b>' + fmtN(diff) + '</b>', why: 'Check: ' + fmtN(diff) + ' + ' + fmtN(b) + ' = ' + fmtN(a) + '.' });
+    frames.push(snap(-1));
+    return { col: { op: '−', lines: [{ cells: cellsOf(a, W) }, { cells: cellsOf(b, W) }], W: W, ansLen: dl, frames: frames, answer: String(diff) }, slots: [], steps: steps };
+  }
+
   function solve(kind, q) {
+    if (kind === 'add_cols') return solveAdd(q);
+    if (kind === 'sub_cols') return solveSub(q);
     const n = q.num, d = q.den;
     if (kind === 'compare' || kind === 'compare_mixed') {
       const steps = [];
@@ -812,6 +912,23 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     return f;
   }
 
+
+  /* ---------- column arithmetic helpers ---------- */
+  const pickD = (r, d) => Array.isArray(d) ? r.pick(d) : d;
+  const nDigits = (r, d) => { let t = String(r.int(1, 9)); for (let i = 1; i < d; i++) t += r.int(0, 9); return Number(t); };
+  function carryCount(A) {
+    let c = 0, n = 0; const W = Math.max.apply(null, A.map(x => String(x).length));
+    for (let i = 0; i < W; i++) { let t = c; A.forEach(x => { const t2 = String(x), k = t2.length - 1 - i; if (k >= 0) t += +t2[k]; }); c = Math.floor(t / 10); if (c) n++; }
+    return n;
+  }
+  function borrowCount(a, b) {
+    const cur = String(a).split('').reverse().map(Number), B = String(b).split('').reverse().map(Number); let n = 0;
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i] < (B[i] || 0)) { n++; let j = i + 1; while (cur[j] === 0) j++; cur[j]--; for (let k = i + 1; k < j; k++) cur[k] = 9; cur[i] += 10; }
+    }
+    return n;
+  }
+
   const DEN = { 1: [2, 3, 4, 5, 6], 2: [2, 3, 4, 5, 6, 8, 10], 3: [3, 4, 5, 6, 7, 8, 9, 10, 12] };
 
   const GEN = {
@@ -870,6 +987,38 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
       const b = r.pick(L === 1 ? [2, 3, 4] : L === 2 ? [2, 3, 4, 5, 6] : [3, 4, 5, 6, 7, 8, 9]);
       return { a: r.int(1, L === 1 ? 1 : b - 1), b, N: b * r.int(2, L === 1 ? 4 : L === 2 ? 6 : 9) };
     },
+
+    add_cols(r, L, o) {
+      o = o || { n: 2, d: 3 };
+      const d = pickD(r, o.d), n = o.n || 2;
+      let best = null;
+      for (let t = 0; t < 1500; t++) {
+        const A = []; for (let i = 0; i < n; i++) A.push(nDigits(r, d));
+        const k = carryCount(A);
+        best = A;
+        if (L === 1 ? k <= Math.max(1, Math.ceil(d / 3)) : L === 2 ? k >= 1 : k >= Math.min(d, d + n - 3)) break;
+      }
+      return { addends: best };
+    },
+    sub_cols(r, L, o) {
+      o = o || { d: 3 };
+      const mf = o.mf || 'rand';
+      let best = null;
+      for (let t = 0; t < 2500; t++) {
+        let a, b, d = pickD(r, o.d || 3);
+        if (mf === 'zeros2') { a = r.int(2, 9) * 1000 + r.int(1, 8); b = nDigits(r, 4); }
+        else if (mf === 'zeros3') { a = r.int(2, 9) * 10000 + r.int(1, 8); b = nDigits(r, r.pick([4, 5])); }
+        else if (mf === 'p1000') { a = 1000; b = nDigits(r, r.pick([2, 3, 3])); }
+        else if (mf === 'wholeK') { a = r.int(2, 9) * 1000; b = nDigits(r, r.pick([3, 4])); }
+        else if (mf === 'wholeH') { a = r.int(2, 9) * 100; b = nDigits(r, 2); }
+        else { a = nDigits(r, d); b = nDigits(r, o.sd || d); }
+        if (b >= a) continue;
+        const k = borrowCount(a, b); best = { a, b };
+        if (mf !== 'rand') { if (k >= 1) break; continue; }
+        if (L === 1 ? k === 1 : L === 2 ? k >= 1 : k >= Math.max(1, d - 1)) break;
+      }
+      return best;
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -898,13 +1047,33 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     'comparing-mixed-numbers-and-fractions': { kind: 'compare_mixed', level: 2 },
     'comparing-fractions-improper-mixed': { kind: 'compare_mixed', level: 3 },
     'ordering-3-fractions': { kind: 'order3', level: 2 },
-    'fractional-part-of-set': { kind: 'fraction_of_set', level: 2 }
+    'fractional-part-of-set': { kind: 'fraction_of_set', level: 2 },
+    'add-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 2, d: 3 } },
+    'add-3-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 3, d: 3 } },
+    'add-4-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 4, d: 3 } },
+    'add-5-3-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 5, d: 3 } },
+    'add-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 2, d: 4 } },
+    'add-3-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 3, d: 4 } },
+    'add-4-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 4, d: 4 } },
+    'add-5-4-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 5, d: 4 } },
+    'add-5or6-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 2, d: [5, 6] } },
+    'add-three-5or6-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 3, d: [5, 6] } },
+    'add-four-5or6-digit-numbers-in-columns': { kind: 'add_cols', level: 2, opts: { n: 4, d: [5, 6] } },
+    'subtract-2-digit-numbers': { kind: 'sub_cols', level: 2, opts: { d: 2 } },
+    'subtract-3-digit-numbers-with-regrouping': { kind: 'sub_cols', level: 2, opts: { d: 3 } },
+    'subtract-4-digit-numbers-with-regrouping': { kind: 'sub_cols', level: 2, opts: { d: 4 } },
+    'subtract-5or6-digit-numbers': { kind: 'sub_cols', level: 2, opts: { d: [5, 6] } },
+    'subtract-borrow-across-2-zeros': { kind: 'sub_cols', level: 2, opts: { mf: 'zeros2' } },
+    'subtract-borrow-across-3-zeros': { kind: 'sub_cols', level: 2, opts: { mf: 'zeros3' } },
+    'subtract-from-1000': { kind: 'sub_cols', level: 2, opts: { mf: 'p1000' } },
+    'subtract-from-whole-thousands': { kind: 'sub_cols', level: 2, opts: { mf: 'wholeK' } },
+    'subtract-2-digit-number-from-whole-hundreds': { kind: 'sub_cols', level: 2, opts: { mf: 'wholeH' } },
   };
 
-  function generate(kind, count, level, seed) {
+  function generate(kind, count, level, seed, opts) {
     const r = rng(seed == null ? Math.floor(Math.random() * 4294967296) : seed), out = [], seen = {};
     for (let i = 0, guard = 0; out.length < count && guard < count * 60; guard++) {
-      const q = GEN[kind](r, level), key = JSON.stringify(q);
+      const q = GEN[kind](r, level, opts), key = JSON.stringify(q);
       if (seen[key]) continue;                       /* no repeated problems on one sheet */
       seen[key] = 1; out.push({ q }); i++;
     }
@@ -1087,7 +1256,7 @@ function makeData(kind, file, probs){
   var K = C.KINDS[kind];
   return {
     kind: kind, label: K.label, title: K.title, file: file,
-    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
+    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, col: sv.col, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
   };
 }
 
@@ -1203,6 +1372,35 @@ async function toggleImage(){
 }
 
 /* ---------- rendering ---------- */
+function colHtml(col, f){
+  var W = col.W, n = col.lines.length, H = 0.55 + 1.1 * n + 0.2 + 1.15, Wem = W * 0.62 + Math.floor((W - 1) / 3) * 0.3 + 0.8;
+  var fs = Math.floor(Math.min(104, 640 / H, 540 / Wem));
+  function line(cls, fn, op, showCm){
+    var h = '<div class="cl ' + cls + '"><span class="op">' + (op || '') + '</span>';
+    for (var c = W - 1; c >= 0; c--) {
+      h += fn(c);
+      if (c > 0 && c % 3 === 0) h += '<span class="cm">' + (showCm(c) ? ',' : '') + '</span>';
+    }
+    return h + '</div>';
+  }
+  var h = '<div class="col" style="font-size:' + fs + 'px">';
+  var hi = function(c){ return c === f.hi ? ' hi' : ''; };
+  var top = f.carry ? function(c){ return '<span class="cc' + hi(c) + '">' + (f.carry[c] || '') + '</span>'; }
+                    : function(c){ return '<span class="cc' + hi(c) + '">' + ((f.top[c] && f.top[c].nv) || '') + '</span>'; };
+  h += line('cr', top, '', function(){ return false; });
+  col.lines.forEach(function(L, i){
+    h += line('', function(c){
+      var struck = f.top && i === 0 && f.top[c] && f.top[c].st;
+      return '<span class="cc' + hi(c) + (struck ? ' st' : '') + '">' + L.cells[c] + '</span>';
+    }, i === n - 1 ? col.op : '', function(c){ return L.cells[c] !== ''; });
+  });
+  h += '<div class="rl"></div>';
+  h += line('an', function(c){
+    var v = f.ans[c];
+    return '<span class="cc' + hi(c) + '">' + (v !== '' ? v : (c < col.ansLen ? '<span class="ph">·</span>' : '')) + '</span>';
+  }, '', function(c){ return f.ans[c] !== ''; });
+  return h + '</div>';
+}
 function part(v){
   var h = '';
   if (v.sym) return '<span class="nw"><span class="whole">' + (v.sym === '<' ? '&lt;' : v.sym === '>' ? '&gt;' : '=') + '</span></span>';
@@ -1225,6 +1423,7 @@ function render(){
   var D = S.data, p = D.probs[S.i], N = D.probs.length, guided = S.mode === 'guided';
   if (p.img) { renderImage(D, p, N); return; }
   $('pic').hidden = true; document.querySelector('.rowwrap').style.display = ''; $('steps').style.display = '';
+  $('drill').classList.toggle('colmode', !!p.col);
   var slotStep = p.slots.map(function(_, k){ return p.steps.findIndex(function(st){ return st.slot === k; }); });
 
   function slotHtml(k){
@@ -1237,6 +1436,8 @@ function render(){
     for (var mi = 0; mi < S.s; mi++) (p.steps[mi].mark || []).forEach(function(m){ marks.push(m); });
     var hlt = function(t){ var e = C.esc(t); marks.forEach(function(m){ var em = C.esc(m); if (em) e = e.split(em).join('<span class="mk">' + em + '</span>'); }); return e; };
     h = '<div class="ptext">' + (p.ctx ? '<span class="ctx">' + hlt(p.ctx) + '</span>' : '') + hlt(p.text) + '</div>';
+  } else if (p.col) {
+    h = colHtml(p.col, p.col.frames[Math.min(S.s, p.col.frames.length - 1)]);
   } else if (p.row) {
     p.row.forEach(function(seg){
       if (seg.t === 'v') h += part(seg.v);
@@ -1265,10 +1466,10 @@ function render(){
   var sh = '';
   if (S.s === 0 && p.steps.length) sh = '<div class="waiting">' + (p.text != null ? 'Press → or click to reveal the answer' : 'Press → or click for step 1') + '</div>';
   else if (!p.steps.length) sh = '<div class="waiting">No answer on the sheet. Press → for the next question.</div>';
-  for (var i = 0; i < S.s; i++) {
+  for (var i = (p.col && !board ? Math.max(0, S.s - 3) : 0); i < S.s; i++) {
     var s = p.steps[i];
     var wk = expand(s.work, S.i + ':' + i);
-    var bs = p.text != null ? (function(n){ return n > 150 ? 36 : n > 90 ? 44 : n > 50 ? 52 : 62; })(wk.replace(/<[^>]+>/g, '').length) : 62;
+    var bs = p.text != null ? (function(n){ return n > 150 ? 36 : n > 90 ? 44 : n > 50 ? 52 : 62; })(wk.replace(/<[^>]+>/g, '').length) : (p.col ? (Math.max.apply(null, wk.split('<br>').map(function(l){ return l.replace(/<[^>]+>/g, '').length; })) > 34 ? 38 : 46) : 62);
     if (board) sh += '<div class="bl' + (i === S.s - 1 ? ' cur' : '') + '" style="--bs:' + bs + 'px">' + wk + '</div>';
     else sh += '<div class="st' + (i === S.s - 1 ? ' cur' : '') + '"><div class="no">' + (i + 1) + '</div><div class="work">' + wk + '</div>' + (guided ? '<div class="why">' + s.why + '</div>' : '') + '</div>';
   }
@@ -1309,6 +1510,7 @@ function guard(){
   S.guardLog = (S.guardLog || []).concat(log.map(function(m){ return 'p' + (S.i + 1) + ' s' + S.s + ': ' + m; }));
 }
 function renderImage(D, p, N){
+  $('drill').classList.remove('colmode');
   document.querySelector('.rowwrap').style.display = 'none'; $('steps').style.display = 'none';
   var pic = $('pic'); pic.hidden = false;
   pic.innerHTML = '<div class="paper"><img alt="" src="' + (S.s > 0 && p.ans ? p.ans : p.img) + '"></div>';
@@ -1393,7 +1595,7 @@ function startGen(seed){
   var L = subList(), u = L.subs[G.ui];
   if (!u || !u.cov) return;
   var lvl = G.level ? G.level : u.cov.level;
-  var probs = GEN.generate(u.cov.kind, G.count, lvl, seed);
+  var probs = GEN.generate(u.cov.kind, G.count, lvl, seed, u.cov.opts);
   var d = makeData(u.cov.kind, 'Generated', probs);
   d.title = u.title; d.file = 'Generated';
   S.data = d; S.i = 0; S.s = 0; S.acrSeen = {}; S.doc = null; S.pages = null; S.textData = null; S.imgData = null; S.view = 'text';

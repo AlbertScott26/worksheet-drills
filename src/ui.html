@@ -102,6 +102,27 @@ body.moved #hint{display:none}
 #goto .lbl{font:600 20px/1 var(--mono);letter-spacing:.08em;margin-bottom:18px}
 #goto input{width:220px;font:700 64px/1.1 var(--body);text-align:center;color:#fff;background:var(--bg);border:1px solid var(--line);padding:8px;user-select:text;-webkit-user-select:text}
 
+/* ---------- column arithmetic ---------- */
+.col{display:flex;flex-direction:column;align-items:flex-start;font:700 90px/1.1 var(--body);position:relative}
+.cl{display:flex;align-items:center;height:1.1em}
+.cl.cr{height:.55em;font-size:.5em;color:var(--cream);height:1.1em}
+.cc{display:inline-block;width:.62em;text-align:center;height:1.1em;line-height:1.1em}
+.cr .cc{width:1.24em}
+.cr .op{width:1.6em}
+.cm{display:inline-block;width:.3em;text-align:center;color:var(--cream);font-size:.7em;line-height:1.6}
+.cr .cm{width:.6em}
+.op{display:inline-block;width:.8em;text-align:center;color:var(--cream)}
+.cc.hi{background:var(--panel)}
+.cc.st{text-decoration:line-through;text-decoration-thickness:.07em;opacity:.55}
+.rl{height:.07em;background:#fff;align-self:stretch;margin:.05em 0}
+.an .cc{color:var(--gold)}
+.an .ph{opacity:.28;color:#fff;font-size:.5em}
+#drill.colmode .rowwrap{left:96px;right:auto;width:560px;top:130px;height:700px}
+#drill.colmode .steps,#drill.colmode .board{left:700px;right:96px;top:140px;bottom:72px;align-items:flex-start;border-top:0;border-left:1px solid var(--line);padding:0 0 0 30px}
+#drill.colmode .bl{text-align:left}
+#drill.colmode .st{grid-template-columns:44px 1fr}
+#drill.colmode .st .why{grid-column:2}
+
 /* ---------- home + generator ---------- */
 #upd{position:absolute;left:96px;right:96px;top:128px;padding:16px 22px;background:var(--panel);border:3px solid var(--gold);font:700 20px/1.2 var(--mono);letter-spacing:.06em;color:#fff;cursor:pointer;text-align:center;z-index:30}
 #ver{position:absolute;right:96px;bottom:34px;font:500 13px/1 var(--mono);letter-spacing:.08em;opacity:.5}
@@ -401,7 +422,7 @@ function makeData(kind, file, probs){
   var K = C.KINDS[kind];
   return {
     kind: kind, label: K.label, title: K.title, file: file,
-    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
+    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, col: sv.col, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
   };
 }
 
@@ -517,6 +538,35 @@ async function toggleImage(){
 }
 
 /* ---------- rendering ---------- */
+function colHtml(col, f){
+  var W = col.W, n = col.lines.length, H = 0.55 + 1.1 * n + 0.2 + 1.15, Wem = W * 0.62 + Math.floor((W - 1) / 3) * 0.3 + 0.8;
+  var fs = Math.floor(Math.min(104, 640 / H, 540 / Wem));
+  function line(cls, fn, op, showCm){
+    var h = '<div class="cl ' + cls + '"><span class="op">' + (op || '') + '</span>';
+    for (var c = W - 1; c >= 0; c--) {
+      h += fn(c);
+      if (c > 0 && c % 3 === 0) h += '<span class="cm">' + (showCm(c) ? ',' : '') + '</span>';
+    }
+    return h + '</div>';
+  }
+  var h = '<div class="col" style="font-size:' + fs + 'px">';
+  var hi = function(c){ return c === f.hi ? ' hi' : ''; };
+  var top = f.carry ? function(c){ return '<span class="cc' + hi(c) + '">' + (f.carry[c] || '') + '</span>'; }
+                    : function(c){ return '<span class="cc' + hi(c) + '">' + ((f.top[c] && f.top[c].nv) || '') + '</span>'; };
+  h += line('cr', top, '', function(){ return false; });
+  col.lines.forEach(function(L, i){
+    h += line('', function(c){
+      var struck = f.top && i === 0 && f.top[c] && f.top[c].st;
+      return '<span class="cc' + hi(c) + (struck ? ' st' : '') + '">' + L.cells[c] + '</span>';
+    }, i === n - 1 ? col.op : '', function(c){ return L.cells[c] !== ''; });
+  });
+  h += '<div class="rl"></div>';
+  h += line('an', function(c){
+    var v = f.ans[c];
+    return '<span class="cc' + hi(c) + '">' + (v !== '' ? v : (c < col.ansLen ? '<span class="ph">·</span>' : '')) + '</span>';
+  }, '', function(c){ return f.ans[c] !== ''; });
+  return h + '</div>';
+}
 function part(v){
   var h = '';
   if (v.sym) return '<span class="nw"><span class="whole">' + (v.sym === '<' ? '&lt;' : v.sym === '>' ? '&gt;' : '=') + '</span></span>';
@@ -539,6 +589,7 @@ function render(){
   var D = S.data, p = D.probs[S.i], N = D.probs.length, guided = S.mode === 'guided';
   if (p.img) { renderImage(D, p, N); return; }
   $('pic').hidden = true; document.querySelector('.rowwrap').style.display = ''; $('steps').style.display = '';
+  $('drill').classList.toggle('colmode', !!p.col);
   var slotStep = p.slots.map(function(_, k){ return p.steps.findIndex(function(st){ return st.slot === k; }); });
 
   function slotHtml(k){
@@ -551,6 +602,8 @@ function render(){
     for (var mi = 0; mi < S.s; mi++) (p.steps[mi].mark || []).forEach(function(m){ marks.push(m); });
     var hlt = function(t){ var e = C.esc(t); marks.forEach(function(m){ var em = C.esc(m); if (em) e = e.split(em).join('<span class="mk">' + em + '</span>'); }); return e; };
     h = '<div class="ptext">' + (p.ctx ? '<span class="ctx">' + hlt(p.ctx) + '</span>' : '') + hlt(p.text) + '</div>';
+  } else if (p.col) {
+    h = colHtml(p.col, p.col.frames[Math.min(S.s, p.col.frames.length - 1)]);
   } else if (p.row) {
     p.row.forEach(function(seg){
       if (seg.t === 'v') h += part(seg.v);
@@ -579,10 +632,10 @@ function render(){
   var sh = '';
   if (S.s === 0 && p.steps.length) sh = '<div class="waiting">' + (p.text != null ? 'Press → or click to reveal the answer' : 'Press → or click for step 1') + '</div>';
   else if (!p.steps.length) sh = '<div class="waiting">No answer on the sheet. Press → for the next question.</div>';
-  for (var i = 0; i < S.s; i++) {
+  for (var i = (p.col && !board ? Math.max(0, S.s - 3) : 0); i < S.s; i++) {
     var s = p.steps[i];
     var wk = expand(s.work, S.i + ':' + i);
-    var bs = p.text != null ? (function(n){ return n > 150 ? 36 : n > 90 ? 44 : n > 50 ? 52 : 62; })(wk.replace(/<[^>]+>/g, '').length) : 62;
+    var bs = p.text != null ? (function(n){ return n > 150 ? 36 : n > 90 ? 44 : n > 50 ? 52 : 62; })(wk.replace(/<[^>]+>/g, '').length) : (p.col ? (Math.max.apply(null, wk.split('<br>').map(function(l){ return l.replace(/<[^>]+>/g, '').length; })) > 34 ? 38 : 46) : 62);
     if (board) sh += '<div class="bl' + (i === S.s - 1 ? ' cur' : '') + '" style="--bs:' + bs + 'px">' + wk + '</div>';
     else sh += '<div class="st' + (i === S.s - 1 ? ' cur' : '') + '"><div class="no">' + (i + 1) + '</div><div class="work">' + wk + '</div>' + (guided ? '<div class="why">' + s.why + '</div>' : '') + '</div>';
   }
@@ -623,6 +676,7 @@ function guard(){
   S.guardLog = (S.guardLog || []).concat(log.map(function(m){ return 'p' + (S.i + 1) + ' s' + S.s + ': ' + m; }));
 }
 function renderImage(D, p, N){
+  $('drill').classList.remove('colmode');
   document.querySelector('.rowwrap').style.display = 'none'; $('steps').style.display = 'none';
   var pic = $('pic'); pic.hidden = false;
   pic.innerHTML = '<div class="paper"><img alt="" src="' + (S.s > 0 && p.ans ? p.ans : p.img) + '"></div>';
@@ -707,7 +761,7 @@ function startGen(seed){
   var L = subList(), u = L.subs[G.ui];
   if (!u || !u.cov) return;
   var lvl = G.level ? G.level : u.cov.level;
-  var probs = GEN.generate(u.cov.kind, G.count, lvl, seed);
+  var probs = GEN.generate(u.cov.kind, G.count, lvl, seed, u.cov.opts);
   var d = makeData(u.cov.kind, 'Generated', probs);
   d.title = u.title; d.file = 'Generated';
   S.data = d; S.i = 0; S.s = 0; S.acrSeen = {}; S.doc = null; S.pages = null; S.textData = null; S.imgData = null; S.view = 'text';
