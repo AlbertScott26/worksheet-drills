@@ -27,3 +27,6 @@ python3 src/build.py          # writes docs/index.html
 ```
 
 Worksheet PDFs are not stored in this repo (they belong to their publishers). Keep them locally in `samples/` for tests.
+
+## Original sheet view
+Press `O` to see any worksheet exactly as printed, one question at a time, with the answer revealed in place. Scope of supported worksheet families: `SCOPE.md`.

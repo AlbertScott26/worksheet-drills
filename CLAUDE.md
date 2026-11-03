@@ -16,3 +16,8 @@ Owner: Andrew, 4th grade teacher (Paideia School, Tampa). The page runs on a cla
 - A dropped PDF is matched to a lesson by its first question text and item count (`match` in the lesson file). When matched, the lesson's steps replace the plain answer-key display.
 - To add one: parse the PDF with the generic reader, write steps that (1) name the numbers to use, (2) set up the problem, (3) solve, (4) answer. Verify every answer against the sheet's key before committing.
 - Step `work` is HTML (`<b>` for answers, `.ifr` spans for stacked fractions); `why` is one short sentence.
+
+## Original-sheet (image) mode
+- `buildImageData` in `ui.html` renders PDF pages to canvas, crops each numbered cell and its matching key cell, and shows them on a white panel (`#pic`). `O` toggles it; it is automatic when the generic parser finds 0 items.
+- Label rule: text item matching `^\d{1,3}\s*[.)]$`, size <= 16. A page is a key page if it has "Answers" or all its labels repeat earlier ones. Fewer than 2 labels = page mode.
+- Scope and build order for K5 grade 4: see `SCOPE.md`.
