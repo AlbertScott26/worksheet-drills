@@ -114,12 +114,12 @@ body.moved #hint{display:none}
 #gtabs button.sel,.opt button.sel{border:3px solid var(--gold);padding:12px 20px}
 #gtopics,#gsubs{position:absolute;top:204px;bottom:112px;overflow-y:auto;background:var(--panel);border:1px solid var(--line)}
 #gtopics{left:96px;width:430px}#gsubs{left:546px;right:96px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 20px;min-height:52px;font:400 24px/1.15 var(--body);color:#fff;cursor:pointer;border-bottom:1px solid var(--line)}
-.row.sel{background:var(--bg);box-shadow:inset 6px 0 0 var(--gold)}
-.row .n{font:600 16px/1 var(--mono);letter-spacing:.06em;color:var(--cream);white-space:nowrap}
-.row.soon{color:#9aa3c4}
-.row .rd{font:700 14px/1 var(--mono);letter-spacing:.1em;border:1px solid #fff;padding:5px 8px;color:#fff}
-.row.soon .rd{border-color:var(--line);color:#9aa3c4}
+.grow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 20px;min-height:52px;font:400 24px/1.15 var(--body);color:#fff;cursor:pointer;border-bottom:1px solid var(--line)}
+.grow.sel{background:var(--bg);box-shadow:inset 6px 0 0 var(--gold)}
+.grow .gn{font:600 16px/1 var(--mono);letter-spacing:.06em;color:var(--cream);white-space:nowrap}
+.grow.soon{color:#9aa3c4}
+.grow .rd{font:700 14px/1 var(--mono);letter-spacing:.1em;border:1px solid #fff;padding:5px 8px;color:#fff}
+.grow.soon .rd{border-color:var(--line);color:#9aa3c4}
 #gbar{position:absolute;left:96px;right:96px;bottom:20px;height:76px;display:flex;align-items:center;gap:26px}
 #gbar .lab{font:600 15px/1 var(--mono);letter-spacing:.1em;color:var(--cream);margin-right:-12px}
 .opt{display:flex;gap:8px}.opt button{padding:12px 16px;font-size:18px}.opt button.sel{padding:10px 14px}
@@ -1340,13 +1340,13 @@ function drawGen(){
   tabs.innerHTML = ''; tp.innerHTML = ''; sb.innerHTML = '';
   CAT.subjects.forEach(function(sj, i){ var b = mk('button', i === G.si ? 'sel' : '', sj.name.toUpperCase(), function(){ G.si = i; G.ti = 0; G.ui = 0; drawGen(); }); tabs.appendChild(b); });
   L.names.forEach(function(n, i){
-    var r = mk('div', 'row' + (i === G.ti ? ' sel' : ''), null, function(){ G.ti = i; G.ui = 0; G.focus = 'subs'; drawGen(); });
+    var r = mk('div', 'grow' + (i === G.ti ? ' sel' : ''), null, function(){ G.ti = i; G.ui = 0; G.focus = 'subs'; drawGen(); });
     r.appendChild(mk('span', '', n));
-    var rc = readyCount(L.sj, n); r.appendChild(mk('span', 'n', rc + '/' + L.sj.topics[n].length));
+    var rc = readyCount(L.sj, n); r.appendChild(mk('span', 'gn', rc + '/' + L.sj.topics[n].length));
     tp.appendChild(r);
   });
   L.subs.forEach(function(u, i){
-    var r = mk('div', 'row' + (i === G.ui ? ' sel' : '') + (u.cov ? '' : ' soon'), null, function(){ if (G.ui === i && u.cov) startGen(); else { G.ui = i; drawGen(); } });
+    var r = mk('div', 'grow' + (i === G.ui ? ' sel' : '') + (u.cov ? '' : ' soon'), null, function(){ if (G.ui === i && u.cov) startGen(); else { G.ui = i; drawGen(); } });
     r.appendChild(mk('span', '', u.title)); r.appendChild(mk('span', 'rd', u.cov ? 'READY' : 'SOON'));
     sb.appendChild(r);
   });

@@ -27,3 +27,4 @@ Owner: Andrew, 4th grade teacher (Paideia School, Tampa). The page runs on a cla
 - `build.py` embeds `src/generators.js` (`/*__GEN__*/`) and `catalog/k5-grade4.json` (`/*__CATALOG__*/`).
 - New engine checklist now also needs: a generator, `COVERAGE` slugs, and `tests/gentest.mjs` passing (it solves ~48k generated problems).
 - `catalog/` is crawled from k5learning.com with the built-in browser (WebFetch cannot list sub-topics). PDFs cannot be downloaded from the sandbox.
+- CSS gotcha: the drill equation container is `.row`. Do not reuse generic class names (`.row`, `.n`, `.d`) for new screens; the generator list uses `.grow`/`.gn`.
