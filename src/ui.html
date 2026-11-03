@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Worksheet Drills</title>
+<style>
+:root{--bg:#141B36;--panel:#243058;--line:#3A4772;--gold:#C9A227;--cream:#E8E4D4;
+--display:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+--body:"Source Sans 3","Helvetica Neue",Arial,sans-serif;
+--mono:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden;user-select:none;-webkit-user-select:none}
+body.idle #drill{cursor:none}
+[hidden]{display:none!important}
+#stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0;color:#fff;font-family:var(--body)}
+.hl,.hr,.chip{position:absolute;top:54px;font:600 22px/1 var(--mono);letter-spacing:.08em}
+.hl{left:96px}.hr{right:96px;text-align:right}
+.rule{position:absolute;left:96px;right:96px;top:113px;height:3px;background:var(--gold)}
+.foot{position:absolute;left:96px;bottom:34px;font:500 15px/1 var(--mono);letter-spacing:.08em;opacity:.75}
+.foot.r{left:auto;right:96px}
+
+/* ---------- start screen ---------- */
+#drop{position:absolute;left:96px;right:96px;top:150px;height:330px;background:var(--panel);border:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer;transition:border-color .15s}
+#drop.over{border-color:var(--gold)}
+#drop .big{font:700 62px/1 var(--display);letter-spacing:.04em;text-transform:uppercase}
+#drop .sm{font:400 28px/1.2 var(--body);color:var(--cream)}
+#status{position:absolute;left:96px;right:96px;top:494px;height:34px;font:500 22px/34px var(--mono);letter-spacing:.04em;color:var(--cream)}
+#pw{position:absolute;left:96px;right:96px;top:534px;height:8px;background:var(--panel);border:1px solid var(--line)}
+#pf{height:100%;width:0;background:var(--gold);transition:width .2s}
+#status.err{color:#fff;background:var(--panel);border-left:6px solid var(--gold);padding-left:14px}
+.cards{position:absolute;left:96px;right:96px;top:548px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.card{background:var(--panel);border:1px solid var(--line);padding:20px 26px;cursor:pointer;text-align:left;color:#fff;font-family:var(--body)}
+.card.sel{border:3px solid var(--gold);padding:18px 24px}
+.card .t{font:700 26px/1 var(--mono);letter-spacing:.06em;margin-bottom:10px}
+.card .d{font:400 24px/1.3 var(--body);color:var(--cream)}
+#acrbtn{position:absolute;right:96px;top:46px;font:600 16px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:12px 20px;cursor:pointer}
+#resume{position:absolute;right:480px;top:46px;font:600 16px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:12px 20px;cursor:pointer}
+.supp{position:absolute;left:96px;right:96px;bottom:70px;font:400 20px/1.5 var(--body);color:var(--cream);opacity:.9}
+
+/* ---------- drill screen ---------- */
+.chip{left:50%;transform:translateX(-50%);top:46px;font-size:17px;padding:11px 18px;background:var(--panel);color:#fff;border:1px solid var(--line);cursor:pointer;white-space:nowrap}
+.chip.guided{border:2px solid var(--gold)}
+.chip.walk{border:2px solid var(--cream)}
+.rowwrap{position:absolute;left:96px;right:96px;top:130px;height:262px;display:flex;align-items:center;justify-content:center}
+.row{display:inline-flex;align-items:center;gap:36px;transform-origin:center}
+.nw{display:inline-flex;align-items:center;gap:.12em;font:700 120px/1 var(--body)}
+.whole{font-size:1.18em;line-height:1}
+.frac{display:inline-flex;flex-direction:column;align-items:center}
+.frac .n{padding:0 .08em .03em;line-height:1}
+.frac .d{border-top:.05em solid currentColor;padding:.03em .08em 0;line-height:1}
+.eq{font:600 104px/1 var(--body);opacity:.9}
+.slot{position:relative;display:inline-flex;align-items:center}
+.ans{visibility:hidden;color:var(--gold)}
+.slot.on .ans{visibility:visible}
+.qm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 100px/1 var(--body);color:rgba(255,255,255,.28)}
+.slot.on .qm{display:none}
+.ptext{width:1400px;text-align:left;font:600 56px/1.25 var(--body);white-space:pre-wrap;word-break:break-word;max-height:250px;overflow:hidden}
+.ptext .ctx{display:block;font:400 .5em/1.3 var(--body);color:var(--cream);opacity:.85;margin-bottom:.35em;white-space:normal}
+
+.steps{position:absolute;left:96px;right:96px;top:408px;bottom:72px;display:flex;flex-direction:column;gap:8px;--k:1}
+.st{display:grid;grid-template-columns:44px 540px 1fr;column-gap:22px;align-items:center;background:var(--panel);border:1px solid var(--line);padding:8px 18px 8px 14px}
+.st.cur{border-left:6px solid var(--gold);padding-left:9px}
+.st .no{font:700 24px/1 var(--mono);color:var(--gold)}
+.st .work{font:600 calc(40px*var(--k))/1.2 var(--body)}
+.st .why{font:400 calc(26px*var(--k))/1.25 var(--body);color:var(--cream)}
+.steps.walk .st{grid-template-columns:44px 1fr}
+.steps.walk .st .work{font-size:calc(46px*var(--k))}
+.work b{color:var(--gold);font-weight:700}
+.ifr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.78em;line-height:1.05;margin:0 .1em}
+.ifr span:first-child{padding:0 .15em .04em}
+.ifr span:last-child{border-top:.07em solid currentColor;padding:.04em .15em 0}
+.imx{display:inline-flex;align-items:center;vertical-align:middle}
+.imx .iw{font-size:1.1em;margin-right:.08em}
+.board{position:absolute;left:96px;right:96px;top:404px;bottom:72px;display:flex;flex-direction:column;align-items:center;gap:14px;border-top:1px solid var(--line);padding-top:20px;--k:1}
+.bl{font:600 calc(62px*var(--k))/1.25 var(--body);text-align:center;opacity:.72}
+.bl.cur{opacity:1;animation:rise .28s ease-out}
+.bl b{color:var(--gold);font-weight:700}
+.bl .ifr{font-size:.82em}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.board .waiting{padding-top:30px}
+.waiting{font:400 30px/1.3 var(--body);color:var(--cream);opacity:.55;padding:6px 0}
+.prog{position:absolute;left:0;bottom:0;height:6px;background:var(--gold);transition:width .25s}
+.nav{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:14px;opacity:0;transition:opacity .3s}
+body.moved .nav{opacity:1}
+body.moved #hint{display:none}
+.nav button{font:600 16px/1 var(--mono);letter-spacing:.08em;color:#fff;background:var(--panel);border:1px solid var(--line);padding:12px 20px;cursor:pointer}
+#hint{position:absolute;left:600px;right:260px;bottom:34px;text-align:center;font:500 16px/1 var(--mono);letter-spacing:.1em;pointer-events:none;opacity:0}
+#hint.show{animation:fade 11s forwards}
+@keyframes fade{0%,70%{opacity:.85}100%{opacity:0}}
+#goto{position:absolute;left:0;top:0;width:1600px;height:900px;background:rgba(20,27,54,.88);display:flex;align-items:center;justify-content:center;z-index:5}
+#goto .box{background:var(--panel);border:2px solid var(--gold);padding:28px 40px;text-align:center}
+#goto .lbl{font:600 20px/1 var(--mono);letter-spacing:.08em;margin-bottom:18px}
+#goto input{width:220px;font:700 64px/1.1 var(--body);text-align:center;color:#fff;background:var(--bg);border:1px solid var(--line);padding:8px;user-select:text;-webkit-user-select:text}
+</style></head>
+<body>
+<div id="stage">
+
+  <!-- START SCREEN -->
+  <div id="start">
+    <div class="hl">WORKSHEET DRILLS</div>
+    <button id="resume" hidden>RESUME WORKSHEET</button>
+    <button id="acrbtn"></button>
+    <div class="rule"></div>
+    <div id="drop">
+      <div class="big">Drop a worksheet PDF here</div>
+      <div class="sm">any subject &middot; or click to choose a file</div>
+    </div>
+    <input type="file" id="file" accept="application/pdf,.pdf,application/json,.json" hidden>
+    <div id="status"></div>
+    <div id="pw" hidden><div id="pf"></div></div>
+    <div class="cards">
+      <button class="card" id="cardGuided" data-mode="guided">
+        <div class="t">GUIDED</div>
+        <div class="d">Steps with brief reasoning. Use when a student is confused and needs the process explained.</div>
+      </button>
+      <button class="card" id="cardWalk" data-mode="walk">
+        <div class="t">WALK-THROUGH</div>
+        <div class="d">Steps only, no reasoning. Use when students explain the process and you reveal each step as they say it.</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- DRILL SCREEN -->
+  <div id="drill" hidden>
+    <div class="hl" id="hl"></div>
+    <button class="chip" id="chip"></button>
+    <div class="hr" id="hr"></div>
+    <div class="rule"></div>
+    <div class="rowwrap"><div class="row" id="row"></div></div>
+    <div class="steps" id="steps"></div>
+    <div id="hint"></div>
+    <div class="foot" id="foot"></div>
+    <div class="foot r" id="footr"></div>
+    <div class="nav"><button id="bk">&#9664; BACK</button><button id="fw">NEXT STEP &#9654;</button></div>
+    <div class="prog" id="prog"></div>
+  </div>
+
+  <div id="goto" hidden>
+    <div class="box"><div class="lbl">GO TO PROBLEM (1&ndash;<span id="gmax"></span>)</div><input id="gin" type="text" inputmode="numeric" autocomplete="off"></div>
+  </div>
+</div>
+
+<!-- Embedded PDF reader (pdf.js, Apache-2.0). Kept as plain text and loaded on demand. -->
+<script type="text/plain" id="pdfjs-lib">/*__PDFJS_LIB__*/</script>
+<script type="text/plain" id="pdfjs-worker">/*__PDFJS_WORKER__*/</script>
+
+<script>window.__PRELOAD__ = /*__PRELOAD__*/null;</script>
+<script>/*__CORE__*/</script>
+<script>
+(function(){
+'use strict';
+var C = window.DrillCore;
+var $ = function(id){ return document.getElementById(id); };
+var stage = $('stage');
+var S = { data: null, i: 0, s: 0, mode: 'guided', layout: 'board', acr: true, acrSeen: {} };
+var ACRONYMS = { GCF: 'Greatest common factor' };
+try { var m = localStorage.getItem('fd-mode'); if (m === 'guided' || m === 'walk') S.mode = m; var ac = localStorage.getItem('fd-acr'); if (ac === '0') S.acr = false; var ly = localStorage.getItem('fd-layout'); if (ly === 'board' || ly === 'boxes') S.layout = ly; } catch (e) {}
+
+/* ---------- layout scaling ---------- */
+function fitStage(){
+  var k = Math.min(innerWidth / 1600, innerHeight / 900);
+  stage.style.transform = 'translate(' + (innerWidth - 1600 * k) / 2 + 'px,' + (innerHeight - 900 * k) / 2 + 'px) scale(' + k + ')';
+}
+
+/* ---------- mode ---------- */
+function setMode(m){
+  S.mode = m;
+  try { localStorage.setItem('fd-mode', m); } catch (e) {}
+  $('cardGuided').classList.toggle('sel', m === 'guided');
+  $('cardWalk').classList.toggle('sel', m === 'walk');
+  if (S.data && !$('drill').hidden) render();
+}
+
+/* ---------- PDF reading ---------- */
+/* fill in features older Safari versions lack (pdf.js needs them) */
+function polyfills(){
+  try {
+    if (typeof ReadableStream !== 'undefined' && !ReadableStream.prototype[Symbol.asyncIterator]) {
+      var vals = function(){
+        var r = this.getReader();
+        return { next: function(){ return r.read(); }, 'return': function(){ try { r.releaseLock(); } catch (e) {} return Promise.resolve({ done: true, value: undefined }); }, [Symbol.asyncIterator]: function(){ return this; } };
+      };
+      ReadableStream.prototype[Symbol.asyncIterator] = vals;
+      if (!ReadableStream.prototype.values) ReadableStream.prototype.values = vals;
+    }
+    if (!Promise.withResolvers) Promise.withResolvers = function(){ var o = {}; o.promise = new Promise(function(a, b){ o.resolve = a; o.reject = b; }); return o; };
+    if (!Array.fromAsync) Array.fromAsync = async function(it){ var out = []; for await (var x of it) out.push(x); return out; };
+    if (!Object.groupBy) Object.groupBy = function(it, f){ var o = Object.create(null), i = 0; for (var x of it) { var k = f(x, i++); (o[k] = o[k] || []).push(x); } return o; };
+    if (!Array.prototype.at) Array.prototype.at = function(n){ n = Math.trunc(n) || 0; if (n < 0) n += this.length; return this[n]; };
+    if (!Uint8Array.prototype.at) Uint8Array.prototype.at = Array.prototype.at;
+    if (!Object.hasOwn) Object.hasOwn = function(o, k){ return Object.prototype.hasOwnProperty.call(o, k); };
+  } catch (e) {}
+}
+var pdfjsP = null;
+function loadPdfjs(){
+  if (pdfjsP) return pdfjsP;
+  pdfjsP = new Promise(function(resolve, reject){
+    try {
+      polyfills();
+      // classic inline scripts: no module imports or Blob workers, which some browsers block on file://
+      [$('pdfjs-lib').textContent, $('pdfjs-worker').textContent].forEach(function(code){
+        var sc = document.createElement('script'); sc.text = code; document.head.appendChild(sc);
+      });
+      var lib = window.__pdfjsLib;
+      if (!lib || !window.pdfjsWorker) throw new Error('The PDF reader did not start.');
+      lib.GlobalWorkerOptions.workerSrc = 'about:blank';
+      resolve(lib);
+    } catch (e) { reject(e); }
+  });
+  pdfjsP.catch(function(){ pdfjsP = null; });
+  return pdfjsP;
+}
+
+function status(msg, err){
+  var el = $('status');
+  el.textContent = msg || '';
+  el.className = err ? 'err' : '';
+  if (err || !msg) $('pw').hidden = true;
+}
+
+/* progress bar: shows percent and time left */
+var PG = { t0: 0, last: 0, timer: null };
+function progress(frac, label){
+  var now = Date.now();
+  if (!PG.t0) PG.t0 = now;
+  PG.last = now;
+  frac = Math.max(0, Math.min(1, frac));
+  $('pw').hidden = false;
+  $('pf').style.width = (frac * 100).toFixed(0) + '%';
+  var left = '';
+  if (frac > 0.2 && frac < 0.98) { var sec = Math.max(1, Math.ceil((now - PG.t0) / frac * (1 - frac) / 1000)); left = ' · about ' + sec + ' sec left'; }
+  var el = $('status'); el.className = ''; el.textContent = label + ' · ' + Math.round(frac * 100) + '%' + left;
+}
+function progressStart(){
+  PG.t0 = Date.now(); PG.last = PG.t0; clearInterval(PG.timer);
+  PG.timer = setInterval(function(){
+    if (Date.now() - PG.last > 20000) { clearInterval(PG.timer); PG.t0 = 0; status('This is taking too long. Reload the page and try again, or use Chrome.', true); }
+  }, 1000);
+}
+function progressEnd(){ clearInterval(PG.timer); PG.t0 = 0; }
+function tick(){ return new Promise(function(r){ setTimeout(r, 20); }); }
+
+async function readFile(file){
+  if (!file) return;
+  var isJson = /\.json$/i.test(file.name) || file.type === 'application/json';
+  if (!isJson && !/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { status('Drop a PDF worksheet (or a .json lesson file).', true); return; }
+  progressStart();
+  try {
+    if (isJson) {
+      progress(0.3, 'Reading lesson'); await tick();
+      var L = JSON.parse(await file.text());
+      S.data = makeTextData(L.title || file.name.replace(/\.json$/i, ''), L.subject || 'LESSON', file.name, C.lessonToItems(L));
+      S.i = 0; S.s = 0; S.acrSeen = {}; progressEnd(); status(''); showDrill(); return;
+    }
+    progress(0.03, 'Starting the PDF reader'); await tick();
+    var pdfjs = await loadPdfjs();
+    progress(0.15, 'Opening ' + file.name); await tick();
+    var buf = new Uint8Array(await file.arrayBuffer());
+    var doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true }).promise;
+    var kind = null, probs = [], sawText = false, pages = [], np = doc.numPages;
+    for (var p = 1; p <= np; p++) {
+      progress(0.2 + 0.65 * (p - 1) / np, 'Reading page ' + p + ' of ' + np); await tick();
+      var page = await doc.getPage(p);
+      var tc = await page.getTextContent();
+      var items = tc.items.map(function(t){ return { str: t.str, x: t.transform[4], y: t.transform[5], size: Math.hypot(t.transform[0], t.transform[1]), width: t.width }; });
+      if (items.some(function(o){ return o.str && o.str.trim(); })) sawText = true;
+      pages.push(items);
+      var r = C.parsePage(items);
+      if (!r.kind) continue;
+      if (kind && r.kind !== kind) throw new Error('This PDF mixes worksheet types. Split it into one type per file.');
+      kind = r.kind;
+      probs = probs.concat(r.problems);
+    }
+    if (!sawText) throw new Error('This PDF has no selectable text (it may be a scan). Upload it to Claude and ask for a lesson file (.json), then drop that here.');
+    progress(0.9, 'Building questions'); await tick();
+    var title = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
+    if (kind && probs.length) {
+      S.data = makeData(kind, file.name, probs);
+    } else {
+      var g = C.parseGeneric(pages);
+      if (!g.items.length) throw new Error('No numbered questions found. Upload it to Claude and ask for a lesson file (.json), then drop that here.');
+      S.data = makeTextData(title, 'WORKSHEET', file.name, g.items.map(function(o){
+        return { n: o.n, text: o.text, ctx: o.ctx, steps: o.answer ? [{ work: '<b>' + C.esc(o.answer).replace(/\n/g, '<br>') + '</b>', why: '' }] : [] };
+      }));
+      S.data.hasKey = g.hasKey;
+    }
+    S.i = 0; S.s = 0; S.acrSeen = {};
+    progress(1, 'Ready'); await tick();
+    progressEnd(); status('');
+    showDrill();
+  } catch (e) {
+    progressEnd();
+    status(e && e.message ? e.message : String(e), true);
+  }
+}
+
+function makeTextData(title, label, file, items){
+  return { kind: 'text', label: String(label).toUpperCase(), title: title, file: file,
+    probs: items.map(function(it, idx){ return { n: it.n || idx + 1, text: it.text, ctx: it.ctx || '', slots: [], steps: it.steps || [] }; }) };
+}
+
+function makeData(kind, file, probs){
+  var K = C.KINDS[kind];
+  return {
+    kind: kind, label: K.label, title: K.title, file: file,
+    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, slots: sv.slots, steps: sv.steps }; })
+  };
+}
+
+/* ---------- rendering ---------- */
+function part(v){
+  var h = '';
+  if (v.sym) return '<span class="nw"><span class="whole">' + (v.sym === '<' ? '&lt;' : v.sym === '>' ? '&gt;' : '=') + '</span></span>';
+  if (v.w != null) h += '<span class="whole">' + v.w + '</span>';
+  if (v.num != null && v.den != null) h += '<span class="frac"><span class="n">' + v.num + '</span><span class="d">' + v.den + '</span></span>';
+  return '<span class="nw">' + h + '</span>';
+}
+
+function expand(text, key){
+  // first time an acronym is shown in a worksheet, spell it out once: "Greatest common factor (GCF)"
+  if (!S.acr) return text;
+  return text.replace(/\b([A-Z]{2,5})\b/, function(m, a){
+    if (!ACRONYMS[a]) return m;
+    var seen = S.acrSeen[a];
+    if (!seen) { S.acrSeen[a] = key; seen = key; }
+    return seen === key ? ACRONYMS[a] + ' (' + a + ')' : m;
+  });
+}
+function render(){
+  var D = S.data, p = D.probs[S.i], N = D.probs.length, guided = S.mode === 'guided';
+  var slotStep = p.slots.map(function(_, k){ return p.steps.findIndex(function(st){ return st.slot === k; }); });
+
+  function slotHtml(k){
+    var on = slotStep[k] >= 0 && S.s > slotStep[k];
+    return '<span class="slot' + (on ? ' on' : '') + '"><span class="ans">' + part(p.slots[k].v) + '</span><span class="qm">?</span></span>';
+  }
+  var h = '';
+  if (p.text != null) {
+    h = '<div class="ptext">' + (p.ctx ? '<span class="ctx">' + C.esc(p.ctx) + '</span>' : '') + C.esc(p.text) + '</div>';
+  } else if (p.row) {
+    p.row.forEach(function(seg){
+      if (seg.t === 'v') h += part(seg.v);
+      else if (seg.t === 'op') h += '<span class="eq">' + seg.s + '</span>';
+      else h += slotHtml(seg.k);
+    });
+  } else {
+    h = part(p.q);
+    p.slots.forEach(function(sl, k){ h += '<span class="eq">=</span>' + slotHtml(k); });
+  }
+  var row = $('row');
+  row.innerHTML = h;
+  row.style.transform = 'none';
+  if (p.text != null) {
+    var pt = row.firstChild;
+    for (var fs = p.text.length < 60 ? 72 : 56; fs > 22 && pt.scrollHeight > 252; fs -= 3) pt.style.fontSize = fs + 'px';
+  } else {
+    var w = row.offsetWidth;
+    if (w > 1400) row.style.transform = 'scale(' + (1400 / w) + ')';
+  }
+
+  var st = $('steps');
+  var board = (!guided && S.layout === 'board') || (p.text != null && p.steps.length === 1 && !p.steps[0].why);
+  st.className = board ? 'board' : ('steps' + (guided ? '' : ' walk'));
+  st.style.setProperty('--k', '1');
+  var sh = '';
+  if (S.s === 0 && p.steps.length) sh = '<div class="waiting">' + (p.text != null ? 'Press → or click to reveal the answer' : 'Press → or click for step 1') + '</div>';
+  else if (!p.steps.length) sh = '<div class="waiting">No answer on the sheet. Press → for the next question.</div>';
+  for (var i = 0; i < S.s; i++) {
+    var s = p.steps[i];
+    var wk = expand(s.work, S.i + ':' + i);
+    if (board) sh += '<div class="bl' + (i === S.s - 1 ? ' cur' : '') + '">' + wk + '</div>';
+    else sh += '<div class="st' + (i === S.s - 1 ? ' cur' : '') + '"><div class="no">' + (i + 1) + '</div><div class="work">' + wk + '</div>' + (guided ? '<div class="why">' + s.why + '</div>' : '') + '</div>';
+  }
+  st.innerHTML = sh;
+  for (var k = 1; st.scrollHeight > st.clientHeight + 1 && k > 0.62; ) { k -= 0.06; st.style.setProperty('--k', k.toFixed(2)); }
+
+  var chip = $('chip');
+  chip.className = 'chip ' + (guided ? 'guided' : 'walk');
+  chip.textContent = guided ? 'GUIDED · WITH REASONING' : (board ? 'WALK-THROUGH · ON THE BOARD' : 'WALK-THROUGH · STEP BOXES');
+  $('hl').textContent = D.label;
+  $('hr').textContent = '#' + (i0() + 1) + ' OF ' + N;
+  $('foot').textContent = D.title.toUpperCase();
+  $('footr').textContent = p.steps.length ? (p.text != null && p.steps.length === 1 ? (S.s ? 'ANSWER SHOWN' : 'ANSWER HIDDEN') : 'STEP ' + S.s + ' OF ' + p.steps.length) : 'NO ANSWER KEY';
+  $('prog').style.width = ((S.i + (p.steps.length ? S.s / p.steps.length : 0)) / N * 100) + '%';
+  $('fw').innerHTML = (S.s < p.steps.length ? (p.text != null && p.steps.length === 1 ? 'SHOW ANSWER' : 'NEXT STEP') : (S.i < N - 1 ? (p.text != null ? 'NEXT QUESTION' : 'NEXT PROBLEM') : 'END')) + ' &#9654;';
+}
+function i0(){ return S.i; }
+
+function fwd(){
+  var D = S.data, p = D.probs[S.i];
+  if (S.s < p.steps.length) S.s++;
+  else if (S.i < D.probs.length - 1) { S.i++; S.s = 0; }
+  render();
+}
+function back(){
+  var D = S.data;
+  if (S.s > 0) S.s--;
+  else if (S.i > 0) { S.i--; S.s = D.probs[S.i].steps.length; }
+  render();
+}
+function go(n){
+  S.i = Math.max(0, Math.min(S.data.probs.length - 1, n)); S.s = 0; render();
+}
+
+/* ---------- screens ---------- */
+function showStart(){
+  $('drill').hidden = true; $('start').hidden = false;
+  $('resume').hidden = !S.data;
+  setMode(S.mode);
+}
+function showDrill(){
+  $('start').hidden = true; $('drill').hidden = false;
+  render();
+  var hint = $('hint');
+  hint.textContent = '\u2192 STEP  \u00b7  \u2190 BACK  \u00b7  M MODE  \u00b7  G GO TO  \u00b7  L LAYOUT  \u00b7  F FULL  \u00b7  ESC NEW';
+  hint.classList.remove('show'); void hint.offsetWidth; hint.classList.add('show');
+}
+
+/* ---------- events ---------- */
+var dropEl = $('drop'), fileEl = $('file');
+dropEl.addEventListener('click', function(){ fileEl.click(); });
+fileEl.addEventListener('change', function(){ var f = fileEl.files && fileEl.files[0]; fileEl.value = ''; readFile(f); });
+['dragenter', 'dragover'].forEach(function(t){
+  window.addEventListener(t, function(e){ e.preventDefault(); if (!$('start').hidden) dropEl.classList.add('over'); });
+});
+['dragleave', 'drop'].forEach(function(t){
+  window.addEventListener(t, function(e){ e.preventDefault(); dropEl.classList.remove('over'); });
+});
+window.addEventListener('drop', function(e){
+  var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) readFile(f);
+});
+$('cardGuided').addEventListener('click', function(){ setMode('guided'); });
+$('cardWalk').addEventListener('click', function(){ setMode('walk'); });
+function acrLabel(){ $('acrbtn').textContent = S.acr ? 'ACRONYMS: SPELL OUT FIRST USE' : 'ACRONYMS: SHORT ONLY'; }
+$('acrbtn').addEventListener('click', function(){ S.acr = !S.acr; S.acrSeen = {}; try { localStorage.setItem('fd-acr', S.acr ? '1' : '0'); } catch (e) {} acrLabel(); });
+acrLabel();
+$('resume').addEventListener('click', showDrill);
+$('chip').addEventListener('click', function(e){ e.stopPropagation(); setMode(S.mode === 'guided' ? 'walk' : 'guided'); });
+$('fw').addEventListener('click', function(e){ e.stopPropagation(); fwd(); });
+$('bk').addEventListener('click', function(e){ e.stopPropagation(); back(); });
+$('drill').addEventListener('click', fwd);
+
+function openGoto(){
+  $('gmax').textContent = S.data.probs.length;
+  $('goto').hidden = false;
+  var inp = $('gin'); inp.value = ''; inp.focus();
+}
+function closeGoto(){ $('goto').hidden = true; $('gin').blur(); }
+
+document.addEventListener('keydown', function(e){
+  var k = e.key;
+  if (!$('goto').hidden) {
+    if (k === 'Enter') { var n = parseInt($('gin').value, 10); closeGoto(); if (n > 0) go(n - 1); }
+    else if (k === 'Escape') closeGoto();
+    return;
+  }
+  if (!$('start').hidden) {
+    if (k === 'm' || k === 'M') setMode(S.mode === 'guided' ? 'walk' : 'guided');
+    return;
+  }
+  if ([' ', 'Enter', 'ArrowRight', 'ArrowDown', 'PageDown', 'n'].indexOf(k) >= 0) { e.preventDefault(); fwd(); }
+  else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace', 'p'].indexOf(k) >= 0) { e.preventDefault(); back(); }
+  else if (k === 'm' || k === 'M') setMode(S.mode === 'guided' ? 'walk' : 'guided');
+  else if (k === 'l' || k === 'L') { S.layout = S.layout === 'board' ? 'boxes' : 'board'; try { localStorage.setItem('fd-layout', S.layout); } catch (er) {} render(); }
+  else if (k === 'g' || k === 'G') { e.preventDefault(); openGoto(); }
+  else if (k === 'Home') { e.preventDefault(); go(0); }
+  else if (k === 'End') { e.preventDefault(); go(S.data.probs.length - 1); S.s = S.data.probs[S.i].steps.length; render(); }
+  else if (k === 'f' || k === 'F') {
+    try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (er) {}
+  }
+  else if (k === 'Escape') { if (!document.fullscreenElement) showStart(); }
+});
+
+var idleT;
+document.addEventListener('mousemove', function(){
+  document.body.classList.add('moved'); document.body.classList.remove('idle');
+  clearTimeout(idleT);
+  idleT = setTimeout(function(){ document.body.classList.remove('moved'); document.body.classList.add('idle'); }, 2500);
+});
+addEventListener('resize', function(){ fitStage(); if (S.data && !$('drill').hidden) render(); });
+
+fitStage();
+setMode(S.mode);
+if (window.__PRELOAD__) {
+  try {
+    var L = window.__PRELOAD__;
+    S.data = makeData(L.kind, L.file || '', L.probs);
+    S.i = 0; S.s = 0; S.acrSeen = {};
+    showDrill();
+  } catch (e) { status('Could not open the built-in worksheet: ' + e.message, true); }
+}
+// test hook: lets automated checks read state
+window.__fd = S;
+})();
+</script>
+</body></html>

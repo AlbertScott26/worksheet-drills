@@ -1,0 +1,3 @@
+{"title":"Water Cycle","subject":"Science","items":[
+{"prompt":"Which step of the water cycle turns liquid water into water vapor?","context":"Choose the best answer.","steps":[{"work":"Liquid → gas is <b>evaporation</b>","why":"The sun heats water until it rises as vapor."}]},
+{"prompt":"Read the passage and explain why clouds form. Warm air carrying water vapor rises, cools as it climbs higher, and the vapor condenses into tiny droplets around dust particles. Billions of these droplets gather together and we see them as clouds in the sky above our heads, drifting with the wind until they grow heavy enough to fall as rain, snow, sleet, or hail back to the ground.","answer":"Rising vapor cools and condenses into droplets."}]}
