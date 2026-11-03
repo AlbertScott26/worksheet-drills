@@ -10,3 +10,9 @@ Owner: Andrew, 4th grade teacher (Paideia School, Tampa). The page runs on a cla
 - Palette: bg #141B36, panels #243058, borders #3A4772, gold #C9A227 (answers only), cream #E8E4D4.
 - Acronyms (GCF etc.) are spelled out in parentheses on first use per worksheet, then shown short; see `ACRONYMS` in `ui.html`.
 - Reasoning lines: 4th-grade vocabulary, one short sentence.
+
+## Lesson library (word problems and other non-formula worksheets)
+- `lessons/*.json` hold hand-written lessons (steps, reasoning, `mark` phrases highlighted in the story). `build.py` embeds them in the page.
+- A dropped PDF is matched to a lesson by its first question text and item count (`match` in the lesson file). When matched, the lesson's steps replace the plain answer-key display.
+- To add one: parse the PDF with the generic reader, write steps that (1) name the numbers to use, (2) set up the problem, (3) solve, (4) answer. Verify every answer against the sheet's key before committing.
+- Step `work` is HTML (`<b>` for answers, `.ifr` spans for stacked fractions); `why` is one short sentence.

@@ -17,6 +17,7 @@ A lesson file (`.json`, see `examples/`) gives reasoning steps for any subject.
 - `src/ui.html` — the page (start screen, drill screen, progress bar, settings)
 - `src/build.py` — bundles ui + core + pdf.js into one offline file at `docs/index.html`
 - `tests/` — parser tests against sample worksheets (`SAMPLES=/path/to/pdfs npm test`)
+- `lessons/` — hand-written lessons for worksheets that need reasoning steps (word problems); matched automatically when the PDF is dropped
 - `examples/` — sample lesson files
 
 ## Build

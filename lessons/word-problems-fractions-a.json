@@ -1,0 +1,180 @@
+{
+ "schemaVersion": 1,
+ "title": "Writing and Comparing Fractions · Ashley and Ben",
+ "subject": "Word Problems",
+ "match": {
+  "first": "What fraction of the students in the school are in grade 4?",
+  "count": 6
+ },
+ "items": [
+  {
+   "n": 1,
+   "prompt": "What fraction of the students in the school are in grade 4?",
+   "answer": "45/482",
+   "steps": [
+    {
+     "work": "Numbers: 15 + 6 + 14 + 10 and 482",
+     "why": "Add all four class groups for grade 4. The whole school is 482. The glasses and siblings fractions are not needed here.",
+     "mark": [
+      "15 boys",
+      "6 girls",
+      "14 girls",
+      "10 boys",
+      "482 students"
+     ]
+    },
+    {
+     "work": "Part: 15 + 6 + 14 + 10 = ?",
+     "why": "The part is the grade 4 students. Add every boy and girl from both classes."
+    },
+    {
+     "work": "15 + 6 + 14 + 10 = <b>45</b>",
+     "why": "Ms. Ashley has 21 and Mr. Ben has 24, so grade 4 has 45 students."
+    },
+    {
+     "work": "Answer: <b><span class=\"ifr\"><span>45</span><span>482</span></span></b>",
+     "why": "A fraction is part over whole: 45 grade 4 students out of 482 students."
+    }
+   ],
+   "context": "There are 482 students in the school and there are two Grade 4 classes: Ms. Ashley’s and Mr. Ben’s classes. Ms. Ashley’s class has 15 boys and 6 girls. Mr. Ben’s class has 14 girls and 10 boys. In Ms. Ashley’s class, 2/3 of the students wear glasses. In Mr. Ben’s class, 1/4 of the kids have other siblings in the school."
+  },
+  {
+   "n": 2,
+   "prompt": "What fraction of the grade 4 students are boys?",
+   "answer": "25/45 (or 5/9)",
+   "steps": [
+    {
+     "work": "Numbers: 15 boys + 10 boys, out of 45",
+     "why": "Boys are in both classes, so use both boy numbers. The whole is all 45 grade 4 students.",
+     "mark": [
+      "15 boys",
+      "10 boys"
+     ]
+    },
+    {
+     "work": "Part: 15 + 10 = ?  Whole: 45",
+     "why": "The part is all the boys. The whole is grade 4 only, not the whole school."
+    },
+    {
+     "work": "15 + 10 = <b>25</b>  so  <span class=\"ifr\"><span>25</span><span>45</span></span>",
+     "why": "There are 25 boys out of 45 students."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>25</span><span>45</span></span> ÷ 5 = <b><span class=\"ifr\"><span>5</span><span>9</span></span></b>",
+     "why": "Divide the top and bottom by 5 to simplify. Answer: 25/45, or 5/9."
+    }
+   ],
+   "context": "There are 482 students in the school and there are two Grade 4 classes: Ms. Ashley’s and Mr. Ben’s classes. Ms. Ashley’s class has 15 boys and 6 girls. Mr. Ben’s class has 14 girls and 10 boys. In Ms. Ashley’s class, 2/3 of the students wear glasses. In Mr. Ben’s class, 1/4 of the kids have other siblings in the school."
+  },
+  {
+   "n": 3,
+   "prompt": "What fraction of the grade 4 students are in Ms. Ashley’s class?",
+   "answer": "21/45 (or 7/15)",
+   "steps": [
+    {
+     "work": "Numbers: 15 boys + 6 girls, out of 45",
+     "why": "Only Ms. Ashley’s class counts for the part. The whole is all 45 grade 4 students.",
+     "mark": [
+      "15 boys",
+      "6 girls"
+     ]
+    },
+    {
+     "work": "Part: 15 + 6 = ?  Whole: 45",
+     "why": "Add the boys and girls in her class. Mr. Ben’s numbers are not part of it."
+    },
+    {
+     "work": "15 + 6 = <b>21</b>  so  <span class=\"ifr\"><span>21</span><span>45</span></span>",
+     "why": "Ms. Ashley has 21 of the 45 students."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>21</span><span>45</span></span> ÷ 3 = <b><span class=\"ifr\"><span>7</span><span>15</span></span></b>",
+     "why": "Divide the top and bottom by 3 to simplify. Answer: 21/45, or 7/15."
+    }
+   ],
+   "context": "There are 482 students in the school and there are two Grade 4 classes: Ms. Ashley’s and Mr. Ben’s classes. Ms. Ashley’s class has 15 boys and 6 girls. Mr. Ben’s class has 14 girls and 10 boys. In Ms. Ashley’s class, 2/3 of the students wear glasses. In Mr. Ben’s class, 1/4 of the kids have other siblings in the school."
+  },
+  {
+   "n": 4,
+   "prompt": "What fraction of the students in Mr. Ben’s class that do not have siblings in the same school?",
+   "answer": "3/4",
+   "steps": [
+    {
+     "work": "Number: 1/4 have siblings",
+     "why": "The story gives the fraction that DO have siblings. The question asks for those who do not.",
+     "mark": [
+      "1/4 of the kids have other siblings in the school"
+     ]
+    },
+    {
+     "work": "Whole class = <span class=\"ifr\"><span>4</span><span>4</span></span>.   <span class=\"ifr\"><span>4</span><span>4</span></span> − <span class=\"ifr\"><span>1</span><span>4</span></span> = ?",
+     "why": "The whole class is 4 out of 4. Take away the part that has siblings."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>4</span><span>4</span></span> − <span class=\"ifr\"><span>1</span><span>4</span></span> = <b><span class=\"ifr\"><span>3</span><span>4</span></span></b>",
+     "why": "Subtract the tops: 4 − 1 = 3. The bottom stays 4."
+    },
+    {
+     "work": "Answer: <b><span class=\"ifr\"><span>3</span><span>4</span></span></b>",
+     "why": "3 out of every 4 students do not have siblings in the school."
+    }
+   ],
+   "context": "There are 482 students in the school and there are two Grade 4 classes: Ms. Ashley’s and Mr. Ben’s classes. Ms. Ashley’s class has 15 boys and 6 girls. Mr. Ben’s class has 14 girls and 10 boys. In Ms. Ashley’s class, 2/3 of the students wear glasses. In Mr. Ben’s class, 1/4 of the kids have other siblings in the school."
+  },
+  {
+   "n": 5,
+   "prompt": "In Ms. Ashley’s class, are there more students that wear glasses or do not wear glasses?",
+   "answer": "Since 2/3 of the students wear glasses, only 1/3 students do not wear glasses. So, more students wear glasses.",
+   "steps": [
+    {
+     "work": "Number: 2/3 wear glasses",
+     "why": "This is the only fraction we need. The question compares glasses to no glasses.",
+     "mark": [
+      "2/3 of the students wear glasses"
+     ]
+    },
+    {
+     "work": "No glasses = <span class=\"ifr\"><span>3</span><span>3</span></span> − <span class=\"ifr\"><span>2</span><span>3</span></span> = <b><span class=\"ifr\"><span>1</span><span>3</span></span></b>",
+     "why": "The whole class is 3 out of 3. Subtract the part that wears glasses."
+    },
+    {
+     "work": "Compare: <span class=\"ifr\"><span>2</span><span>3</span></span> <b>&gt;</b> <span class=\"ifr\"><span>1</span><span>3</span></span>",
+     "why": "The bottoms are the same, so the bigger top is the bigger fraction. 2 is more than 1."
+    },
+    {
+     "work": "Answer: <b>more students wear glasses</b>",
+     "why": "2/3 is more than 1/3 of the class."
+    }
+   ],
+   "context": "There are 482 students in the school and there are two Grade 4 classes: Ms. Ashley’s and Mr. Ben’s classes. Ms. Ashley’s class has 15 boys and 6 girls. Mr. Ben’s class has 14 girls and 10 boys. In Ms. Ashley’s class, 2/3 of the students wear glasses. In Mr. Ben’s class, 1/4 of the kids have other siblings in the school."
+  },
+  {
+   "n": 6,
+   "prompt": "There are 1/35 of the students in the school that are allergic to seafood. There are 1/15 of the students in the school that are allergic to peanuts. Are there more students allergic to seafood or peanuts?",
+   "answer": "Since 1/35 < 1/15, more students are allergic to peanuts.",
+   "steps": [
+    {
+     "work": "Numbers: 1/35 seafood, 1/15 peanuts",
+     "why": "These two fractions are the ones to compare. Both are parts of the whole school.",
+     "mark": [
+      "1/35",
+      "1/15"
+     ]
+    },
+    {
+     "work": "Common bottom number: <b>105</b>",
+     "why": "Find a number that both 35 and 15 go into. 105 works: 35 × 3 and 15 × 7."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>1</span><span>35</span></span> = <span class=\"ifr\"><span>3</span><span>105</span></span>     <span class=\"ifr\"><span>1</span><span>15</span></span> = <span class=\"ifr\"><span>7</span><span>105</span></span>",
+     "why": "Multiply the top and bottom of each fraction by the same number."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>3</span><span>105</span></span> <b>&lt;</b> <span class=\"ifr\"><span>7</span><span>105</span></span>  so  <b>peanuts</b>",
+     "why": "3 is less than 7, so more students are allergic to peanuts."
+    }
+   ],
+   "context": "There are 482 students in the school and there are two Grade 4 classes: Ms. Ashley’s and Mr. Ben’s classes. Ms. Ashley’s class has 15 boys and 6 girls. Mr. Ben’s class has 14 girls and 10 boys. In Ms. Ashley’s class, 2/3 of the students wear glasses. In Mr. Ben’s class, 1/4 of the kids have other siblings in the school."
+  }
+ ]
+}

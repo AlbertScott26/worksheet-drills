@@ -445,7 +445,7 @@
     const items = [], answers = [];
     let inKey = false, ctx = [];
     pages.forEach(pg => {
-      const lines = toLines(pg);
+      const lines = toLines(pg).filter(l => !/k5learning|^©|^(online )?reading (&|and) math/i.test(l.text));
       const labelX = lines.filter(l => LABEL.test(l.text)).map(l => l.x).sort((a, b) => a - b);
       // split into columns when numbered lines sit at clearly different x positions
       let cols = [lines];
@@ -495,13 +495,20 @@
   function lessonToItems(L) {
     if (!L || !Array.isArray(L.items) || !L.items.length) throw new Error('This lesson file has no items.');
     return L.items.map((it, i) => {
-      const steps = Array.isArray(it.steps) ? it.steps.filter(s => s && s.work).map(s => ({ work: String(s.work), why: String(s.why || '') })) : [];
+      const steps = Array.isArray(it.steps) ? it.steps.filter(s => s && s.work).map(s => ({ work: String(s.work), why: String(s.why || ''), mark: Array.isArray(s.mark) ? s.mark.map(String) : null })) : [];
       if (!steps.length && it.answer != null && String(it.answer) !== '') steps.push({ work: '<b>' + esc(String(it.answer)) + '</b>', why: '' });
       if (!it.prompt) throw new Error('Item ' + (i + 1) + ' has no prompt.');
       return { n: it.n || i + 1, text: String(it.prompt), ctx: it.context ? String(it.context) : '', steps: steps };
     });
   }
+  /* a worksheet I already wrote a lesson for is recognized by its first question */
+  function matchLesson(lib, items) {
+    const norm = t => String(t).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!items || !items.length) return null;
+    const first = norm(items[0].text);
+    return (lib || []).find(L => L && L.match && norm(L.match.first) === first && L.match.count === items.length) || null;
+  }
   function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-  g.DrillCore = { KINDS: KINDS, detect: detect, parsePage: parsePage, solve: solve, gcd: gcd, parseGeneric: parseGeneric, lessonToItems: lessonToItems, esc: esc };
+  g.DrillCore = { KINDS: KINDS, detect: detect, parsePage: parsePage, solve: solve, gcd: gcd, parseGeneric: parseGeneric, lessonToItems: lessonToItems, matchLesson: matchLesson, esc: esc };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

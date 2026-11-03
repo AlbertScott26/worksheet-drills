@@ -1,0 +1,177 @@
+{
+ "schemaVersion": 1,
+ "title": "Writing and Comparing Fractions · Sean’s Gifts",
+ "subject": "Word Problems",
+ "match": {
+  "first": "What fraction of the gifts are train sets?",
+  "count": 6
+ },
+ "items": [
+  {
+   "n": 1,
+   "prompt": "What fraction of the gifts are train sets?",
+   "answer": "3/20",
+   "steps": [
+    {
+     "work": "Numbers: 3 train sets, 20 gifts",
+     "why": "The part is the train sets. The whole is all the gifts he received.",
+     "mark": [
+      "3 train sets",
+      "20 gifts"
+     ]
+    },
+    {
+     "work": "Part ÷ whole: 3 out of 20",
+     "why": "A fraction compares the part to the whole. The toy box numbers are not part of the gifts."
+    },
+    {
+     "work": "Answer: <b><span class=\"ifr\"><span>3</span><span>20</span></span></b>",
+     "why": "3 of the 20 gifts are train sets. It cannot be simplified."
+    }
+   ],
+   "context": "Sean had 3 building sets and 18 toy cars in his toy box. At his birthday party, he received 20 gifts. He got 3 train sets, 4 building sets and 9 toy cars. The rest of the gifts are comic books. 3/4 of the gifts are wrapped. 13/15 of the wrapped gifts are wrapped in blue wrapping paper and 1/5 of them are wrapped with ribbons."
+  },
+  {
+   "n": 2,
+   "prompt": "What fraction of the gifts are comic books?",
+   "answer": "4/20 (or 1/5)",
+   "steps": [
+    {
+     "work": "Numbers: 3 + 4 + 9, out of 20 gifts",
+     "why": "The comic books are “the rest”. Add the other gifts, then take that from 20.",
+     "mark": [
+      "3 train sets",
+      "4 building sets",
+      "9 toy cars",
+      "20 gifts",
+      "The rest of the gifts are comic books"
+     ]
+    },
+    {
+     "work": "Other gifts: 3 + 4 + 9 = <b>16</b>",
+     "why": "Train sets, building sets and toy cars are 16 gifts."
+    },
+    {
+     "work": "Comic books: 20 − 16 = <b>4</b>",
+     "why": "Take the 16 other gifts away from all 20."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>4</span><span>20</span></span> ÷ 4 = <b><span class=\"ifr\"><span>1</span><span>5</span></span></b>",
+     "why": "4 out of 20 simplified by dividing the top and bottom by 4. Answer: 4/20, or 1/5."
+    }
+   ],
+   "context": "Sean had 3 building sets and 18 toy cars in his toy box. At his birthday party, he received 20 gifts. He got 3 train sets, 4 building sets and 9 toy cars. The rest of the gifts are comic books. 3/4 of the gifts are wrapped. 13/15 of the wrapped gifts are wrapped in blue wrapping paper and 1/5 of them are wrapped with ribbons."
+  },
+  {
+   "n": 3,
+   "prompt": "What fraction of his toy cars are new?",
+   "answer": "9/27 (or 1/3)",
+   "steps": [
+    {
+     "work": "Numbers: 18 toy cars before, 9 toy cars received",
+     "why": "New cars are the ones he got as gifts. All his cars are the old ones plus the new ones.",
+     "mark": [
+      "18 toy cars",
+      "9 toy cars"
+     ]
+    },
+    {
+     "work": "All cars: 18 + 9 = <b>27</b>",
+     "why": "The whole is every toy car he has now."
+    },
+    {
+     "work": "New cars: <b>9</b>  so  <span class=\"ifr\"><span>9</span><span>27</span></span>",
+     "why": "9 of his 27 toy cars are new."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>9</span><span>27</span></span> ÷ 9 = <b><span class=\"ifr\"><span>1</span><span>3</span></span></b>",
+     "why": "Divide the top and bottom by 9. Answer: 9/27, or 1/3."
+    }
+   ],
+   "context": "Sean had 3 building sets and 18 toy cars in his toy box. At his birthday party, he received 20 gifts. He got 3 train sets, 4 building sets and 9 toy cars. The rest of the gifts are comic books. 3/4 of the gifts are wrapped. 13/15 of the wrapped gifts are wrapped in blue wrapping paper and 1/5 of them are wrapped with ribbons."
+  },
+  {
+   "n": 4,
+   "prompt": "What fraction of his building sets are old?",
+   "answer": "3/7",
+   "steps": [
+    {
+     "work": "Numbers: 3 building sets before, 4 received",
+     "why": "Old building sets are the ones he already had. The new ones came as gifts.",
+     "mark": [
+      "3 building sets",
+      "4 building sets"
+     ]
+    },
+    {
+     "work": "All sets: 3 + 4 = <b>7</b>",
+     "why": "The whole is every building set he has now."
+    },
+    {
+     "work": "Old sets: <b>3</b>  so  <span class=\"ifr\"><span>3</span><span>7</span></span>",
+     "why": "3 of his 7 building sets are old."
+    },
+    {
+     "work": "Answer: <b><span class=\"ifr\"><span>3</span><span>7</span></span></b>",
+     "why": "It cannot be simplified because 3 and 7 share no factor but 1."
+    }
+   ],
+   "context": "Sean had 3 building sets and 18 toy cars in his toy box. At his birthday party, he received 20 gifts. He got 3 train sets, 4 building sets and 9 toy cars. The rest of the gifts are comic books. 3/4 of the gifts are wrapped. 13/15 of the wrapped gifts are wrapped in blue wrapping paper and 1/5 of them are wrapped with ribbons."
+  },
+  {
+   "n": 5,
+   "prompt": "Are there more gifts that are wrapped or more gifts that are unwrapped?",
+   "answer": "Since there are 3/4 of the gifts wrapped, there are more gift wrapped than gifts that are unwrapped.",
+   "steps": [
+    {
+     "work": "Number: 3/4 are wrapped",
+     "why": "This is the fraction we need. The rest of the gifts are unwrapped.",
+     "mark": [
+      "3/4 of the gifts are wrapped"
+     ]
+    },
+    {
+     "work": "Unwrapped = <span class=\"ifr\"><span>4</span><span>4</span></span> − <span class=\"ifr\"><span>3</span><span>4</span></span> = <b><span class=\"ifr\"><span>1</span><span>4</span></span></b>",
+     "why": "The whole is 4 out of 4. Take away the wrapped part."
+    },
+    {
+     "work": "Compare: <span class=\"ifr\"><span>3</span><span>4</span></span> <b>&gt;</b> <span class=\"ifr\"><span>1</span><span>4</span></span>",
+     "why": "The bottoms are the same, so the bigger top wins. 3 is more than 1."
+    },
+    {
+     "work": "Answer: <b>more gifts are wrapped</b>",
+     "why": "3/4 is more than 1/4 of the gifts."
+    }
+   ],
+   "context": "Sean had 3 building sets and 18 toy cars in his toy box. At his birthday party, he received 20 gifts. He got 3 train sets, 4 building sets and 9 toy cars. The rest of the gifts are comic books. 3/4 of the gifts are wrapped. 13/15 of the wrapped gifts are wrapped in blue wrapping paper and 1/5 of them are wrapped with ribbons."
+  },
+  {
+   "n": 6,
+   "prompt": "Are there more gifts wrapped in blue wrapping paper or more gift wrapped with ribbons?",
+   "answer": "Since 1/5 < 13/15, there are more gifts wrapped in blue wrapping paper.",
+   "steps": [
+    {
+     "work": "Numbers: 13/15 blue, 1/5 ribbons",
+     "why": "Compare these two fractions. Both are parts of the wrapped gifts.",
+     "mark": [
+      "13/15 of the wrapped gifts",
+      "1/5 of them"
+     ]
+    },
+    {
+     "work": "Common bottom number: <b>15</b>",
+     "why": "5 goes into 15, so use 15 for both fractions."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>1</span><span>5</span></span> = <span class=\"ifr\"><span>3</span><span>15</span></span>     <span class=\"ifr\"><span>13</span><span>15</span></span> stays the same",
+     "why": "Multiply the top and bottom of 1/5 by 3."
+    },
+    {
+     "work": "<span class=\"ifr\"><span>3</span><span>15</span></span> <b>&lt;</b> <span class=\"ifr\"><span>13</span><span>15</span></span>  so  <b>blue paper</b>",
+     "why": "3 is less than 13, so more gifts are wrapped in blue paper."
+    }
+   ],
+   "context": "Sean had 3 building sets and 18 toy cars in his toy box. At his birthday party, he received 20 gifts. He got 3 train sets, 4 building sets and 9 toy cars. The rest of the gifts are comic books. 3/4 of the gifts are wrapped. 13/15 of the wrapped gifts are wrapped in blue wrapping paper and 1/5 of them are wrapped with ribbons."
+  }
+ ]
+}
