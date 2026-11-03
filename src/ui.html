@@ -48,6 +48,7 @@ body.idle #drill{cursor:none}
 .frac .n{padding:0 .08em .03em;line-height:1}
 .frac .d{border-top:.05em solid currentColor;padding:.03em .08em 0;line-height:1}
 .eq{font:600 104px/1 var(--body);opacity:.9}
+.eq.cm{font-size:80px;margin:0 -8px}
 .slot{position:relative;display:inline-flex;align-items:center}
 .ans{visibility:hidden;color:var(--gold)}
 .slot.on .ans{visibility:visible}
@@ -71,7 +72,7 @@ body.idle #drill{cursor:none}
 .imx{display:inline-flex;align-items:center;vertical-align:middle}
 .imx .iw{font-size:1.1em;margin-right:.08em}
 .board{position:absolute;left:96px;right:96px;top:404px;bottom:72px;display:flex;flex-direction:column;align-items:center;gap:14px;border-top:1px solid var(--line);padding-top:20px;--k:1}
-.bl{font:600 calc(62px*var(--k))/1.25 var(--body);text-align:center;opacity:.72}
+.bl{font:600 calc(var(--bs,62px)*var(--k))/1.25 var(--body);text-align:center;opacity:.72}
 .bl.cur{opacity:1;animation:rise .28s ease-out}
 .bl b{color:var(--gold);font-weight:700}
 .bl .ifr{font-size:.82em}
@@ -256,7 +257,7 @@ async function readFile(file){
     progress(0.15, 'Opening ' + file.name); await tick();
     var buf = new Uint8Array(await file.arrayBuffer());
     var doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true }).promise;
-    var kind = null, probs = [], sawText = false, pages = [], np = doc.numPages;
+    var kind = null, probs = [], sawText = false, pages = [], np = doc.numPages, parseErr = null;
     for (var p = 1; p <= np; p++) {
       progress(0.2 + 0.65 * (p - 1) / np, 'Reading page ' + p + ' of ' + np); await tick();
       var page = await doc.getPage(p);
@@ -264,7 +265,8 @@ async function readFile(file){
       var items = tc.items.map(function(t){ return { str: t.str, x: t.transform[4], y: t.transform[5], size: Math.hypot(t.transform[0], t.transform[1]), width: t.width }; });
       if (items.some(function(o){ return o.str && o.str.trim(); })) sawText = true;
       pages.push(items);
-      var r = C.parsePage(items);
+      var r;
+      try { r = C.parsePage(items); } catch (pe) { parseErr = parseErr || pe; continue; }
       if (!r.kind) continue;
       if (kind && r.kind !== kind) throw new Error('This PDF mixes worksheet types. Split it into one type per file.');
       kind = r.kind;
@@ -273,10 +275,12 @@ async function readFile(file){
     if (!sawText) throw new Error('This PDF has no selectable text (it may be a scan). Upload it to Claude and ask for a lesson file (.json), then drop that here.');
     progress(0.9, 'Building questions'); await tick();
     var title = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
+    if (kind && parseErr) throw parseErr;
     if (kind && probs.length) {
       S.data = makeData(kind, file.name, probs);
     } else {
       var g = C.parseGeneric(pages);
+      if (!g.items.length && parseErr) throw parseErr;
       if (!g.items.length) throw new Error('No numbered questions found. Upload it to Claude and ask for a lesson file (.json), then drop that here.');
       S.data = makeTextData(title, 'WORKSHEET', file.name, g.items.map(function(o){
         return { n: o.n, text: o.text, ctx: o.ctx, steps: o.answer ? [{ work: '<b>' + C.esc(o.answer).replace(/\n/g, '<br>') + '</b>', why: '' }] : [] };
@@ -302,7 +306,7 @@ function makeData(kind, file, probs){
   var K = C.KINDS[kind];
   return {
     kind: kind, label: K.label, title: K.title, file: file,
-    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, slots: sv.slots, steps: sv.steps }; })
+    probs: probs.map(function(pr, idx){ var sv = C.solve(kind, pr.q); return { n: idx + 1, q: pr.q, row: sv.row, slots: sv.slots, steps: sv.steps, hdr: sv.hdr }; })
   };
 }
 
@@ -339,7 +343,7 @@ function render(){
   } else if (p.row) {
     p.row.forEach(function(seg){
       if (seg.t === 'v') h += part(seg.v);
-      else if (seg.t === 'op') h += '<span class="eq">' + seg.s + '</span>';
+      else if (seg.t === 'op') h += '<span class="eq' + (seg.s === '·' ? ' cm' : '') + '">' + seg.s + '</span>';
       else h += slotHtml(seg.k);
     });
   } else {
@@ -367,16 +371,17 @@ function render(){
   for (var i = 0; i < S.s; i++) {
     var s = p.steps[i];
     var wk = expand(s.work, S.i + ':' + i);
-    if (board) sh += '<div class="bl' + (i === S.s - 1 ? ' cur' : '') + '">' + wk + '</div>';
+    var bs = p.text != null ? (wk.length > 150 ? 36 : wk.length > 90 ? 44 : wk.length > 50 ? 52 : 62) : 62;
+    if (board) sh += '<div class="bl' + (i === S.s - 1 ? ' cur' : '') + '" style="--bs:' + bs + 'px">' + wk + '</div>';
     else sh += '<div class="st' + (i === S.s - 1 ? ' cur' : '') + '"><div class="no">' + (i + 1) + '</div><div class="work">' + wk + '</div>' + (guided ? '<div class="why">' + s.why + '</div>' : '') + '</div>';
   }
   st.innerHTML = sh;
-  for (var k = 1; st.scrollHeight > st.clientHeight + 1 && k > 0.62; ) { k -= 0.06; st.style.setProperty('--k', k.toFixed(2)); }
+  for (var k = 1; st.scrollHeight > st.clientHeight + 1 && k > 0.5; ) { k -= 0.06; st.style.setProperty('--k', k.toFixed(2)); }
 
   var chip = $('chip');
   chip.className = 'chip ' + (guided ? 'guided' : 'walk');
   chip.textContent = guided ? 'GUIDED · WITH REASONING' : (board ? 'WALK-THROUGH · ON THE BOARD' : 'WALK-THROUGH · STEP BOXES');
-  $('hl').textContent = D.label;
+  $('hl').textContent = p.hdr || D.label;
   $('hr').textContent = '#' + (i0() + 1) + ' OF ' + N;
   $('foot').textContent = D.title.toUpperCase();
   $('footr').textContent = p.steps.length ? (p.text != null && p.steps.length === 1 ? (S.s ? 'ANSWER SHOWN' : 'ANSWER HIDDEN') : 'STEP ' + S.s + ' OF ' + p.steps.length) : 'NO ANSWER KEY';

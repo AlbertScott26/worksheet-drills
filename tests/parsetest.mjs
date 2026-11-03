@@ -22,7 +22,7 @@ for (const f of fs.readdirSync(SAMPLES).filter(x => x.endsWith('.pdf'))) {
   const r = C.parsePage(items);
   const got = r.problems.map(p => p.q.w != null ? [p.q.w, p.q.num, p.q.den] : [p.q.num, p.q.den]);
   const want = exp[r.kind];
-  if (!want) { console.log(f.slice(0, 40).padEnd(42), r.kind, 'skipped (see comparetest)'); continue; }
+  if (!want) { console.log(f.slice(0, 40).padEnd(42), r.kind, '(checked in keycheck.mjs)'); continue; }
   const ok = JSON.stringify(got) === JSON.stringify(want);
   allOk = allOk && ok;
   console.log(f.slice(0, 40).padEnd(42), r.kind, got.length, ok ? 'MATCH' : 'MISMATCH');

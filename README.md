@@ -7,9 +7,9 @@ Turns a worksheet PDF into a one-question-at-a-time guided drill for a classroom
 - **Live page:** https://albertscott26.github.io/worksheet-drills/ (served from `docs/`)
 
 ## Worksheet types with full step-by-step solving
-Improper to mixed, mixed to improper, simplify proper, simplify improper, completing a whole number, comparing fractions.
+Improper to mixed, mixed to improper, simplify proper, simplify improper, completing a whole number, comparing fractions, comparing with mixed numbers, fractional part of a set, ordering three fractions.
 
-Any other PDF with numbered questions is shown one at a time, with answers from an answer key page if present.
+Word problems and any other PDF with numbered questions is shown one at a time, with answers from an answer key page if present.
 A lesson file (`.json`, see `examples/`) gives reasoning steps for any subject.
 
 ## Layout

@@ -7,7 +7,10 @@
     simplify_proper: { label: 'SIMPLIFY TO LOWEST TERMS', title: 'Simplifying Proper Fractions', whole: false, firstEq: false },
     simplify_improper: { label: 'SIMPLIFY, THEN MIXED NUMBER', title: 'Simplifying Improper Fractions', whole: false, firstEq: true },
     complete_whole: { label: 'COMPLETE THE WHOLE NUMBER', title: 'Completing a Whole Number', whole: false, firstEq: false },
-    compare: { label: 'COMPARING FRACTIONS', title: 'Comparing Fractions', whole: false, firstEq: false }
+    compare: { label: 'COMPARING FRACTIONS', title: 'Comparing Fractions', whole: false, firstEq: false },
+    compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
+    fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
+    order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false }
   };
 
   function gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
@@ -17,7 +20,11 @@
     if (t.includes('simplifying improper')) return 'simplify_improper';
     if (t.includes('simplifying proper')) return 'simplify_proper';
     if (t.includes('completing a whole number')) return 'complete_whole';
-    if (/compar(e|ing) (proper |improper |unlike |like )?fractions/.test(t)) return 'compare';
+    if (t.includes('word problems')) return null;
+    if (/comparing proper & improper|comparing proper and improper/.test(t)) return 'compare_mixed';
+    if (/comparing (proper )?fractions/.test(t)) return 'compare';
+    if (t.includes('fractional part of a set')) return 'fraction_of_set';
+    if (/ordering (3 |three )?fractions/.test(t)) return 'order3';
     if (t.includes('improper fraction to a mixed')) return 'improper_to_mixed';
     if (t.includes('mixed fraction to an improper') || t.includes('mixed number to an improper')) return 'mixed_to_improper';
     return null;
@@ -32,7 +39,11 @@
     if (!kind) return { kind: null, problems: [] };
     const K = KINDS[kind];
     if (kind === 'complete_whole') return parseComplete(it);
+    if (it.some(o => o.s === 'Answers') || (kind === 'compare_mixed' && it.filter(o => /^[<>=]$/.test(o.s)).length >= 3)) return { kind, problems: [], isKey: true };   // answer page: skipped, answers are recomputed
     if (kind === 'compare') return parseCompare(it);
+    if (kind === 'compare_mixed') return parseCompareMixed(it);
+    if (kind === 'fraction_of_set') return parseFractionOfSet(it);
+    if (kind === 'order3') return parseOrder3(it);
 
     let eqs = it.filter(o => o.s === '=');
     if (K.firstEq) {
@@ -138,6 +149,85 @@
     return { kind: 'compare', problems: pairs.map(p => ({ q: { n1: p.a.n, d1: p.a.d, n2: p.b.n, d2: p.b.d } })) };
   }
 
+  /* ----- shared: read stacked fractions and mixed numbers from loose number items ----- */
+  function readValues(nums) {
+    const used = new Set(), fracs = [];
+    const sorted = nums.slice().sort((a, b) => b.y - a.y);
+    sorted.forEach(u => {
+      if (used.has(u)) return;
+      let best = null;
+      sorted.forEach(l => {
+        if (l === u || used.has(l)) return;
+        const dy = u.y - l.y;
+        if (dy > 6 && dy < 40 && Math.abs(l.sz - u.sz) < 1.5 && Math.abs((l.x + l.w / 2) - (u.x + u.w / 2)) < 10 && (!best || dy < u.y - best.y)) best = l;
+      });
+      if (!best) return;
+      used.add(u); used.add(best);
+      fracs.push({ n: +u.s, d: +best.s, x0: Math.min(u.x, best.x), x1: Math.max(u.x + u.w, best.x + best.w), mid: (u.cy + best.cy) / 2, x: Math.min(u.x, best.x) });
+    });
+    const wholes = nums.filter(o => !used.has(o));
+    const vals = fracs.map(f => ({ w: 0, n: f.n, d: f.d, x: f.x0, f: f }));
+    wholes.forEach(w => {
+      const f = vals.find(v => !v.hasW && v.x - (w.x + w.w) > -3 && v.x - (w.x + w.w) < 20 && Math.abs(w.cy - v.f.mid) < 12);
+      if (f) { f.w = +w.s; f.hasW = true; f.x = w.x; }
+      else vals.push({ w: +w.s, n: 0, d: 1, x: w.x, f: null, hasW: true });
+    });
+    return vals.sort((a, b) => a.x - b.x).map(v => ({ w: v.w, n: v.n, d: v.d, x: v.x }));
+  }
+  const toImp = v => ({ n: v.w * v.d + v.n, d: v.d });
+
+  /* "n. [value] ( ) [value]" worksheets with mixed numbers (K5 style). */
+  function parseCompareMixed(it) {
+    const labels = it.filter(o => /^\d+\.$/.test(o.s) && o.sz < 14);
+    const nums = it.filter(o => /^\d+$/.test(o.s));
+    if (!labels.length) throw new Error('Could not find the numbered problems.');
+    const probs = labels.map(l => {
+      const nxt = labels.filter(m => m !== l && Math.abs(m.y - l.y) < 20 && m.x > l.x + 20).map(m => m.x).sort((a, b) => a - b)[0];
+      const x1 = nxt != null ? nxt - 8 : 1e9;
+      const cell = nums.filter(o => o.x > l.x + 6 && o.x < x1 && o.y < l.y + 22 && o.y > l.y - 50);
+      const v = readValues(cell);
+      if (v.length !== 2) throw new Error('Problem ' + l.s + ' did not read as two numbers (found ' + v.length + ').');
+      return { q: { a: { w: v[0].w, n: v[0].n, d: v[0].d }, b: { w: v[1].w, n: v[1].n, d: v[1].d } }, label: parseInt(l.s, 10) };
+    });
+    probs.sort((p, q) => p.label - q.label);
+    return { kind: 'compare_mixed', problems: probs.map(p => ({ q: p.q })) };
+  }
+
+  /* "What is a/b of N?" worksheets (fractional part of a set). */
+  function parseFractionOfSet(it) {
+    const hits = it.map(o => { const m = o.s.match(/^What is (\d+)\s*\/\s*(\d+) of (\d+)\s*\?$/i); return m ? { q: { a: +m[1], b: +m[2], N: +m[3] }, x: o.x, y: o.y } : null; }).filter(Boolean);
+    hits.sort((p, q) => (Math.abs(p.y - q.y) > 8 ? q.y - p.y : p.x - q.x));
+    return { kind: 'fraction_of_set', problems: hits.map(h => ({ q: h.q })) };
+  }
+
+  /* three fractions per problem, plus a "___ > ___ > ___" line that says the direction. */
+  function parseOrder3(it) {
+    const nums = it.filter(o => /^\d+$/.test(o.s) && o.sz >= 14);
+    const vals = [];
+    const rowsSrc = nums.slice().sort((a, b) => b.y - a.y);
+    // split into rows by vertical gaps
+    const bands = [];
+    rowsSrc.forEach(o => { const b = bands.find(b => Math.abs(b.y - o.y) < 45); if (b) { b.items.push(o); b.y = Math.min(b.y, o.y); } else bands.push({ y: o.y, items: [o] }); });
+    const lines = it.filter(o => /_{2,}/.test(o.s) && /[<>]/.test(o.s));
+    const probs = [];
+    bands.sort((a, b) => b.y - a.y).forEach(b => {
+      const v = readValues(b.items);
+      if (v.length % 3) throw new Error('A row of fractions did not split into groups of three.');
+      const top = Math.max.apply(null, b.items.map(o => o.y));
+      const ln = lines.filter(l => l.y < b.y && top - l.y < 200 && l.y > b.y - 200).sort((p, q) => q.y - p.y);
+      const lineY = ln.length ? ln[0].y : null;
+      const syms = [];
+      ln.filter(l => Math.abs(l.y - lineY) < 6).sort((p, q) => p.x - q.x).forEach(l => (l.s.match(/[<>]/g) || []).forEach(c => syms.push(c)));
+      const groups = v.length / 3;
+      for (let g = 0; g < groups; g++) {
+        const dir = syms[g * 2];
+        if (!dir) throw new Error('Could not read the > or < direction for one problem.');
+        probs.push({ q: { v: v.slice(g * 3, g * 3 + 3).map(x => ({ w: x.w, n: x.n, d: x.d })), dir: dir } });
+      }
+    });
+    return { kind: 'order3', problems: probs };
+  }
+
   const fr = (a, b) => '<span class="ifr"><span>' + a + '</span><span>' + b + '</span></span>';
   const mix = (w, n, d) => '<span class="imx"><span class="iw">' + w + '</span>' + fr(n, d) + '</span>';
   const GCF_WHY = 'The GCF is the biggest number that divides both evenly.';
@@ -145,12 +235,21 @@
   /* Returns {slots:[{v}], steps:[{work, why, slot?}]}. A step with `slot: k` fills answer slot k. */
   function solve(kind, q) {
     const n = q.num, d = q.den;
-    if (kind === 'compare') {
-      const a = q.n1, b = q.d1, c = q.n2, d = q.d2;
+    if (kind === 'compare' || kind === 'compare_mixed') {
+      const steps = [];
+      let A, B, rowA, rowB;
+      if (kind === 'compare') { A = { n: q.n1, d: q.d1 }; B = { n: q.n2, d: q.d2 }; rowA = { num: q.n1, den: q.d1 }; rowB = { num: q.n2, den: q.d2 }; }
+      else {
+        const side = v => v.n === 0 ? { w: v.w } : (v.w ? { w: v.w, num: v.n, den: v.d } : { num: v.n, den: v.d });
+        rowA = side(q.a); rowB = side(q.b);
+        A = toImp(q.a); B = toImp(q.b);
+        const conv = [q.a, q.b].filter(v => v.w && v.n).map(v => mix(v.w, v.n, v.d) + ' = ' + fr('<b>' + (v.w * v.d + v.n) + '</b>', v.d));
+        if (conv.length) steps.push({ work: conv.join('&nbsp;&nbsp;·&nbsp;&nbsp;'), why: 'Whole number × bottom + top, over the same bottom.' });
+      }
+      const a = A.n, b = A.d, c = B.n, d = B.d;
       const L = b * d / gcd(b, d), x = a * (L / b), y = c * (L / d);
       const sym = x < y ? '<' : x > y ? '>' : '=';
       const symH = sym === '<' ? '&lt;' : sym === '>' ? '&gt;' : '=';
-      const steps = [];
       if (b === d) {
         steps.push({ work: 'Same bottom number: <b>' + b + '</b>', why: 'When the bottoms match, just compare the tops.' });
       } else {
@@ -160,14 +259,50 @@
       }
       steps.push({
         work: fr(x, L) + ' <b>' + symH + '</b> ' + fr(y, L),
-        why: x === y ? 'The tops are equal, so the fractions are equal.' : x + ' is ' + (x < y ? 'less' : 'greater') + ' than ' + y + ', so the first fraction is ' + (x < y ? 'smaller' : 'larger') + '.',
+        why: x === y ? 'The tops are equal, so the fractions are equal.' : x + ' is ' + (x < y ? 'less' : 'greater') + ' than ' + y + ', so the first one is ' + (x < y ? 'smaller' : 'larger') + '.',
         slot: 0
       });
       return {
-        row: [{ t: 'v', v: { num: a, den: b } }, { t: 'slot', k: 0 }, { t: 'v', v: { num: c, den: d } }],
+        row: [{ t: 'v', v: rowA }, { t: 'slot', k: 0 }, { t: 'v', v: rowB }],
         slots: [{ v: { sym: sym } }],
         steps: steps
       };
+    }
+    if (kind === 'fraction_of_set') {
+      const a = q.a, b = q.b, N = q.N;
+      const grp = N / b, ans = grp * a;
+      const num = v => Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100);
+      const steps = [{ work: N + ' ÷ ' + b + ' = <b>' + num(grp) + '</b>', why: 'The bottom number is how many equal groups. Each group has ' + num(grp) + '.' }];
+      if (a === 1) steps.push({ work: 'Take <b>1</b> group = <b>' + num(ans) + '</b>', why: 'The top number is 1, so the answer is one group.', slot: 0 });
+      else steps.push({ work: num(grp) + ' × ' + a + ' = <b>' + num(ans) + '</b>', why: 'The top number is ' + a + ', so take ' + a + ' groups.', slot: 0 });
+      return {
+        row: [{ t: 'v', v: { num: a, den: b } }, { t: 'op', s: 'of' }, { t: 'v', v: { w: N } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }],
+        slots: [{ v: { w: Number(num(ans)) } }],
+        steps: steps
+      };
+    }
+    if (kind === 'order3') {
+      const vs = q.v, desc = q.dir === '>';
+      const imp = vs.map(toImp);
+      const anyMixed = vs.some(v => v.w && v.n);
+      const L = imp.reduce((acc, f) => acc * f.d / gcd(acc, f.d), 1);
+      const tops = imp.map(f => f.n * (L / f.d));
+      const orig = vs.map(v => v.n === 0 ? String(v.w) : (v.w ? mix(v.w, v.n, v.d) : fr(v.n, v.d)));
+      const idx = [0, 1, 2].sort((i, j) => desc ? tops[j] - tops[i] : tops[i] - tops[j]);
+      const symH = desc ? '&gt;' : '&lt;';
+      const steps = [];
+      if (anyMixed) steps.push({ work: vs.map((v, i) => (v.w && v.n) ? mix(v.w, v.n, v.d) + ' = ' + fr('<b>' + imp[i].n + '</b>', imp[i].d) : '').filter(Boolean).join('&nbsp;&nbsp;·&nbsp;&nbsp;'), why: 'Change each mixed number to an improper fraction first.' });
+      const sameDen = imp.every(f => f.d === imp[0].d);
+      if (sameDen) steps.push({ work: 'Same bottom number: <b>' + L + '</b>', why: 'The bottoms match, so compare the tops.' });
+      else {
+        steps.push({ work: 'Common bottom number: <b>' + L + '</b>', why: 'Rewrite all three fractions with the same bottom.' });
+        steps.push({ work: imp.map((f, i) => fr(f.n, f.d) + ' = ' + fr('<b>' + tops[i] + '</b>', L)).join('&nbsp;&nbsp;·&nbsp;&nbsp;'), why: 'Multiply the top and bottom of each fraction by the same number.' });
+      }
+      steps.push({ work: 'Tops in order: <b>' + idx.map(i => tops[i]).join(' ' + symH + ' ') + '</b>', why: 'Put the tops in order. The bottoms are all ' + L + '.' });
+      steps.push({ work: idx.map(i => orig[i]).join(' <b>' + symH + '</b> '), why: 'Write the original fractions in that order.' });
+      const row = [];
+      vs.forEach((v, i) => { if (i) row.push({ t: 'op', s: '·' }); row.push({ t: 'v', v: v.n === 0 ? { w: v.w } : (v.w ? { w: v.w, num: v.n, den: v.d } : { num: v.n, den: v.d }) }); });
+      return { row: row, slots: [], steps: steps, hdr: desc ? 'ORDER: GREATEST → LEAST' : 'ORDER: LEAST → GREATEST' };
     }
     if (kind === 'complete_whole') {
       const W = q.target, total = W * d, m = total - n;
@@ -262,7 +397,19 @@
 
   /* ---------- generic worksheets (any subject) ---------- */
   function toLines(items) {
-    const its = items.filter(o => o.str && o.str.trim()).slice().sort((a, b) => b.y - a.y || a.x - b.x);
+    let its = items.filter(o => o.str && o.str.trim()).map(o => Object.assign({}, o, { str: o.str.normalize('NFKC') }));
+    // small stacked numbers inside a sentence (like 2 over 3) become "2/3"
+    const numIts = its.filter(o => /^\d+$/.test(o.str.trim()));
+    const gone = new Set(), merged = [];
+    numIts.sort((a, b) => b.y - a.y).forEach(u => {
+      if (gone.has(u)) return;
+      const l = numIts.find(m => m !== u && !gone.has(m) && u.y - m.y > 6 && u.y - m.y < 24 && Math.abs(m.size - u.size) < 1 && Math.abs((m.x + m.width / 2) - (u.x + u.width / 2)) < 8);
+      if (!l) return;
+      gone.add(u); gone.add(l);
+      const sz = u.size * 1.4;
+      merged.push({ isFrac: true, str: u.str.trim() + '/' + l.str.trim(), x: Math.min(u.x, l.x), y: (u.y + l.y) / 2, size: sz, width: Math.max(u.width, l.width) * 2 });
+    });
+    its = its.filter(o => !gone.has(o)).concat(merged).sort((a, b) => b.y - a.y || a.x - b.x);
     const out = [];
     its.forEach(o => {
       const L = out.length ? out[out.length - 1] : null;
@@ -277,7 +424,7 @@
         if (!seg.length) return;
         let t = '', pv = null;
         seg.forEach(o => {
-          if (pv) { const gap = o.x - (pv.x + pv.width); if (gap > 0.2 * L.size && !/\s$/.test(t) && !/^\s/.test(o.str)) t += ' '; }
+          if (pv) { const gap = o.x - (pv.x + pv.width); if ((gap > 0.2 * L.size || o.isFrac || pv.isFrac) && !/\s$/.test(t) && !/^\s/.test(o.str)) t += ' '; }
           t += o.str; pv = o;
         });
         t = t.replace(/\s+/g, ' ').trim();
@@ -296,7 +443,7 @@
 
   function parseGeneric(pages) {
     const items = [], answers = [];
-    let inKey = false;
+    let inKey = false, ctx = [];
     pages.forEach(pg => {
       const lines = toLines(pg);
       const labelX = lines.filter(l => LABEL.test(l.text)).map(l => l.x).sort((a, b) => a - b);
@@ -311,27 +458,27 @@
         }
       }
       const sizes = lines.map(l => l.size).sort((a, b) => a - b), med = sizes.length ? sizes[sizes.length >> 1] : 12;
-      let ctx = [], cur = null;
+      let pending = [], cur = null;
       cols.forEach((col, ci) => {
         cur = null;
         col.forEach(l => {
           if (/^(answer\s*key|answers?|key)\b[\s:]*$/i.test(l.text) || /^answer\s*key\b/i.test(l.text)) { inKey = true; cur = null; return; }
           const m = l.text.match(LABEL);
           if (m) {
+            if (!inKey && pending.length) { ctx = pending.slice(); pending = []; }
             cur = { n: +m[1], lines: m[2] ? [m[2]] : [], ctx: ctx.join(' ') };
             (inKey ? answers : items).push(cur);
           } else if (cur) {
             cur.lines.push(l.text);
           } else if (!inKey && ci === 0) {
-            if (l.size > 1.25 * med) return;                       // title
-            if (/^(name|date|class|period|score)\b|^page\s*\d/i.test(l.text)) return;
-            ctx.push(l.text);
+            if (l.size > 1.1 * med) return;                       // title
+            if (/^(name|date|class|period|score)\b|^page\s*\d|k5learning|^©|^(online )?reading (&|and) math|^grade \d/i.test(l.text)) return;
+            pending.push(l.text);
           }
         });
       });
-      if (!inKey) ctx = [];
     });
-    const clean = a => a.map(o => ({ n: o.n, text: o.lines.reduce((acc, t, i) => i === 0 ? t : acc + (/^\(?[A-Ha-h][.)]\s|^[•\-–]\s/.test(t) ? '\n' : ' ') + t, '').trim(), ctx: (o.ctx || '').slice(0, 260) }));
+    const clean = a => a.map(o => ({ n: o.n, text: o.lines.reduce((acc, t, i) => i === 0 ? t : acc + (/^\(?[A-Ha-h][.)]\s|^[•\-–]\s/.test(t) ? '\n' : ' ') + t, '').trim(), ctx: (o.ctx || '').slice(0, 700) }));
     const its = clean(items).filter(o => o.text && /[^\d\s]/.test(o.text)), ans = clean(answers);   // digits-only items are figures, not questions
     let hasKey = false;
     if (ans.length && its.length) {
