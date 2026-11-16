@@ -3,7 +3,7 @@ const require = createRequire(import.meta.url);
 const C = (() => { const g = {}; new Function('globalThis', 'module', fs.readFileSync(new URL('../src/core.js', import.meta.url), 'utf8') + ';return globalThis')(g, undefined); return g.DrillCore; })();
 const G = require('../src/generators.js');
 const cat = JSON.parse(fs.readFileSync(new URL('../catalog/k5-grade4.json', import.meta.url)));
-let bad = 0, total = 0;
+let bad = 0, total = 0; const gcd = (a, b) => b ? gcd(b, a % b) : a;
 for (const kind of G.kinds) for (const L of [1, 2, 3]) for (let seed = 1; seed <= 150; seed++) {
   const probs = G.generate(kind, 12, L, seed * 7919 + L);
   if (probs.length < 8) { console.log('too few distinct', kind, L, probs.length); bad++; }
@@ -17,7 +17,21 @@ for (const [slug, cv] of Object.entries(G.COVERAGE)) for (const L of [1, 2, 3]) 
     total++;
     try {
       const sv = C.solve(cv.kind, p.q);
-      if (cv.kind === 'fact') {
+      if (cv.kind === 'frac_add' || cv.kind === 'frac_sub' || cv.kind === 'equiv') {
+        const q = p.q, sl = sv.slots[0], uv = (v, d) => (v.w || 0) * d + (v.num || 0);
+        if (cv.kind === 'equiv') {
+          if (sl.v.num * q.d !== q.n * sl.v.den || sl.v.den !== q.d * q.k || sl.v.num !== q.n * q.k) throw new Error('equiv ' + JSON.stringify(q));
+          if (!(sl.q && (sl.q.num === '?' || sl.q.den === '?'))) throw new Error('equiv hidden');
+        } else {
+          const d = q.d, tot = x => x.w * d + x.n, got = uv(sl.v, d);
+          if (sl.v.den != null && sl.v.den !== d) throw new Error('denominator changed');
+          const want = cv.kind === 'frac_add' ? tot(q.a) + tot(q.b) : q.miss ? tot(q.b) : tot(q.a) - tot(q.b);
+          if (got !== want || want <= 0) throw new Error('frac answer ' + got + ' vs ' + want + ' ' + JSON.stringify(q));
+          if (sl.v.num != null && gcd(sl.v.num, d) !== 1) throw new Error('not lowest terms ' + JSON.stringify(q));
+          if (cv.kind === 'frac_sub' && tot(q.a) <= tot(q.b)) throw new Error('negative');
+        }
+        if (sv.steps.length < 2 || sv.steps.filter(s => s.slot === 0).length !== 1) throw new Error('steps');
+      } else if (cv.kind === 'fact') {
         const q = p.q, ev = { '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b, '/': (a, b) => a / b }[q.op];
         if (ev(q.t[0], q.t[1]) !== q.r || !Number.isInteger(q.r) || q.r <= 0 || q.t.some(x => x <= 0)) throw new Error('fact math ' + JSON.stringify(q));
         const hid = q.miss === 'r' ? q.r : q.miss === 'x' ? q.t[0] : q.t[1];

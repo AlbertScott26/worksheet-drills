@@ -11,6 +11,9 @@
     compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
     order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
+    frac_add: { label: 'ADD FRACTIONS', title: 'Adding Fractions and Mixed Numbers', whole: false, firstEq: false },
+    frac_sub: { label: 'SUBTRACT FRACTIONS', title: 'Subtracting Fractions and Mixed Numbers', whole: false, firstEq: false },
+    equiv: { label: 'EQUIVALENT FRACTIONS', title: 'Equivalent Fractions', whole: false, firstEq: false },
     fact: { label: 'QUICK FACTS', title: 'Quick Facts', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
     sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false },
@@ -412,7 +415,61 @@
     }
     return { row: row, slots: [{ v: { w: hidden } }], steps: [{ work: '', why: '', slot: 0 }], fact: true };
   }
+  /* ---- generated fraction kinds: add / subtract (like denominators) and equivalent fractions ---- */
+  const showN = (w, n, d) => n === 0 ? '<b>' + w + '</b>' : w === 0 ? '<b>' + fr(n, d) + '</b>' : '<b>' + mix(w, n, d) + '</b>';
+  const showP = (w, n, d) => n === 0 ? String(w) : w === 0 ? fr(n, d) : mix(w, n, d);
+  const dv = (w, n, d) => n === 0 ? { w: w } : w === 0 ? { num: n, den: d } : { w: w, num: n, den: d };
+  function solveFracAdd(q) {
+    const d = q.d, A = q.a, B = q.b, steps = [], hasW = A.w > 0 || B.w > 0;
+    let W = A.w + B.w; const T = A.n + B.n;
+    if (hasW) steps.push({ work: A.w + ' + ' + B.w + ' = <b>' + W + '</b>', why: 'Add the whole numbers first.' });
+    steps.push({ work: A.n + ' + ' + B.n + ' = <b>' + T + '</b>', why: 'Add the tops. The bottoms stay ' + d + ' because the pieces are the same size.' });
+    let R = T;
+    if (T >= d) {
+      const k = Math.floor(T / d); R = T % d;
+      steps.push({ work: fr(T, d) + ' = ' + (R ? mix(k, R, d) : k), why: 'That is a whole or more. ' + T + ' ÷ ' + d + ' = ' + k + (R ? ' r ' + R : '') + '.' });
+      if (hasW) { steps.push({ work: W + ' + ' + k + ' = <b>' + (W + k) + '</b>', why: 'Add the new whole to the whole numbers.' }); }
+      W += k;
+    }
+    steps.push({ work: 'Answer: ' + showN(W, R, d), why: 'Check: the pieces are still ' + d + 'ths.', slot: 0 });
+    return { row: [{ t: 'v', v: dv(A.w, A.n, d) }, { t: 'op', s: '+' }, { t: 'v', v: dv(B.w, B.n, d) }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: dv(W, R, d) }], steps: steps };
+  }
+  function solveFracSub(q) {
+    const d = q.d, A = q.a, steps = [], tot = x => x.w * d + x.n, sp = c => ({ w: Math.floor(c / d), n: c % d });
+    const C = sp(tot(A) - tot(q.b));               /* start − subtrahend */
+    const Sx = q.miss ? C : q.b;                    /* the number actually subtracted in the steps */
+    const ans = q.miss ? q.b : C;                   /* what the student is asked for */
+    if (q.miss) steps.push({ work: 'Missing = ' + showP(A.w, A.n, d) + ' − ' + showP(C.w, C.n, d), why: 'To find the missing number, subtract the result from the start.' });
+    let w1 = A.w, n1 = A.n;
+    if (n1 < Sx.n) {
+      if (n1 === 0) steps.push({ work: w1 + ' = ' + mix(w1 - 1, d, d), why: 'There are no pieces to take from. Break 1 whole into ' + d + '/' + d + '.' });
+      else steps.push({ work: mix(w1, n1, d) + ' = ' + mix(w1 - 1, n1 + d, d), why: 'Not enough pieces. Break 1 whole into ' + d + '/' + d + ' and add it.' });
+      w1 -= 1; n1 += d;
+    }
+    const r = n1 - Sx.n, Wr = w1 - Sx.w;
+    steps.push({ work: n1 + ' − ' + Sx.n + ' = <b>' + r + '</b>', why: 'Subtract the tops. The bottoms stay ' + d + '.' });
+    if (Sx.w > 0) steps.push({ work: w1 + ' − ' + Sx.w + ' = <b>' + Wr + '</b>', why: 'Subtract the whole numbers.' });
+    steps.push({ work: 'Answer: ' + showN(ans.w, ans.n, d), why: q.miss ? 'Check: start − missing number = the result.' : 'Check: answer + the number taken away = the start.', slot: 0 });
+    const bv = q.miss ? { t: 'slot', k: 0 } : { t: 'v', v: dv(q.b.w, q.b.n, d) };
+    const cv = q.miss ? { t: 'v', v: dv(C.w, C.n, d) } : { t: 'slot', k: 0 };
+    return { row: [{ t: 'v', v: dv(A.w, A.n, d) }, { t: 'op', s: '−' }, bv, { t: 'op', s: '=' }, cv], slots: [{ v: dv(ans.w, ans.n, d) }], steps: steps };
+  }
+  function solveEquiv(q) {
+    const n = q.n, d = q.d, k = q.k, n2 = n * k, d2 = d * k, steps = [];
+    if (q.miss === 'd') {
+      steps.push({ work: n2 + ' ÷ ' + n + ' = <b>' + k + '</b>', why: 'Find what the top number was multiplied by.' });
+      steps.push({ work: d + ' × ' + k + ' = <b>' + d2 + '</b>', why: 'Do the same to the bottom number so the fraction keeps its value.' });
+    } else {
+      steps.push({ work: d2 + ' ÷ ' + d + ' = <b>' + k + '</b>', why: 'Find what the bottom number was multiplied by.' });
+      steps.push({ work: n + ' × ' + k + ' = <b>' + n2 + '</b>', why: 'Do the same to the top number so the fraction keeps its value.' });
+    }
+    steps.push({ work: 'Answer: ' + fr(n, d) + ' = <b>' + fr(n2, d2) + '</b>', why: 'Multiplying top and bottom by ' + k + ' makes the same amount in smaller pieces.', slot: 0 });
+    return { row: [{ t: 'v', v: { num: n, den: d } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: { num: n2, den: d2 }, q: q.miss === 'd' ? { num: n2, den: '?' } : { num: '?', den: d2 } }], steps: steps };
+  }
   function solve(kind, q) {
+    if (kind === 'frac_add') return solveFracAdd(q);
+    if (kind === 'frac_sub') return solveFracSub(q);
+    if (kind === 'equiv') return solveEquiv(q);
     if (kind === 'fact') return solveFact(q);
     if (kind === 'div_cols') return solveDiv(q);
     if (kind === 'mul_cols') return solveMul(q);

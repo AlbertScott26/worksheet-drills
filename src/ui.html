@@ -17,6 +17,7 @@ body.idle #drill{cursor:none}
 .rule{position:absolute;left:96px;right:96px;top:113px;height:3px;background:var(--gold)}
 .foot{position:absolute;left:96px;bottom:34px;font:500 15px/1 var(--mono);letter-spacing:.08em;opacity:.75}
 .foot.r{left:auto;right:96px}
+#foot{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- start screen ---------- */
 #drop{position:absolute;left:96px;right:96px;top:150px;height:330px;background:var(--panel);border:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer;transition:border-color .15s}
@@ -54,6 +55,7 @@ body.idle #drill{cursor:none}
 .slot{position:relative;display:inline-flex;align-items:center}
 .ans{visibility:hidden;color:var(--gold)}
 .slot.on .ans{visibility:visible}
+.qq{color:rgba(255,255,255,.35)}
 .qm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 100px/1 var(--body);color:rgba(255,255,255,.28)}
 .slot.on .qm{display:none}
 .ptext{width:1400px;text-align:left;font:600 56px/1.25 var(--body);white-space:pre-wrap;word-break:break-word;max-height:250px;overflow:hidden}
@@ -629,6 +631,7 @@ function render(){
 
   function slotHtml(k){
     var on = slotStep[k] >= 0 && S.s > slotStep[k];
+    if (p.slots[k].q && !on) return '<span class="slot qv">' + part(p.slots[k].q).replace('>?<', '><span class="qq">?</span><') + '</span>';
     return '<span class="slot' + (on ? ' on' : '') + '"><span class="ans">' + part(p.slots[k].v) + '</span><span class="qm">?</span></span>';
   }
   var h = '';

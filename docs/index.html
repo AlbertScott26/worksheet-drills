@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta name="build-id" content="261103.2156-1b204e4"><meta charset="utf-8">
+<html lang="en"><head><meta name="build-id" content="261116.1446-b0e8d58"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Worksheet Drills</title>
 <style>
@@ -17,6 +17,7 @@ body.idle #drill{cursor:none}
 .rule{position:absolute;left:96px;right:96px;top:113px;height:3px;background:var(--gold)}
 .foot{position:absolute;left:96px;bottom:34px;font:500 15px/1 var(--mono);letter-spacing:.08em;opacity:.75}
 .foot.r{left:auto;right:96px}
+#foot{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- start screen ---------- */
 #drop{position:absolute;left:96px;right:96px;top:150px;height:330px;background:var(--panel);border:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer;transition:border-color .15s}
@@ -54,6 +55,7 @@ body.idle #drill{cursor:none}
 .slot{position:relative;display:inline-flex;align-items:center}
 .ans{visibility:hidden;color:var(--gold)}
 .slot.on .ans{visibility:visible}
+.qq{color:rgba(255,255,255,.35)}
 .qm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 100px/1 var(--body);color:rgba(255,255,255,.28)}
 .slot.on .qm{display:none}
 .ptext{width:1400px;text-align:left;font:600 56px/1.25 var(--body);white-space:pre-wrap;word-break:break-word;max-height:250px;overflow:hidden}
@@ -328,6 +330,9 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     compare_mixed: { label: 'COMPARING MIXED NUMBERS', title: 'Comparing Fractions and Mixed Numbers', whole: false, firstEq: false },
     fraction_of_set: { label: 'FRACTION OF A SET', title: 'Fractional Part of a Set', whole: false, firstEq: false },
     order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
+    frac_add: { label: 'ADD FRACTIONS', title: 'Adding Fractions and Mixed Numbers', whole: false, firstEq: false },
+    frac_sub: { label: 'SUBTRACT FRACTIONS', title: 'Subtracting Fractions and Mixed Numbers', whole: false, firstEq: false },
+    equiv: { label: 'EQUIVALENT FRACTIONS', title: 'Equivalent Fractions', whole: false, firstEq: false },
     fact: { label: 'QUICK FACTS', title: 'Quick Facts', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
     sub_cols: { label: 'SUBTRACT IN COLUMNS', title: 'Subtracting in Columns', whole: false, firstEq: false },
@@ -729,7 +734,61 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     }
     return { row: row, slots: [{ v: { w: hidden } }], steps: [{ work: '', why: '', slot: 0 }], fact: true };
   }
+  /* ---- generated fraction kinds: add / subtract (like denominators) and equivalent fractions ---- */
+  const showN = (w, n, d) => n === 0 ? '<b>' + w + '</b>' : w === 0 ? '<b>' + fr(n, d) + '</b>' : '<b>' + mix(w, n, d) + '</b>';
+  const showP = (w, n, d) => n === 0 ? String(w) : w === 0 ? fr(n, d) : mix(w, n, d);
+  const dv = (w, n, d) => n === 0 ? { w: w } : w === 0 ? { num: n, den: d } : { w: w, num: n, den: d };
+  function solveFracAdd(q) {
+    const d = q.d, A = q.a, B = q.b, steps = [], hasW = A.w > 0 || B.w > 0;
+    let W = A.w + B.w; const T = A.n + B.n;
+    if (hasW) steps.push({ work: A.w + ' + ' + B.w + ' = <b>' + W + '</b>', why: 'Add the whole numbers first.' });
+    steps.push({ work: A.n + ' + ' + B.n + ' = <b>' + T + '</b>', why: 'Add the tops. The bottoms stay ' + d + ' because the pieces are the same size.' });
+    let R = T;
+    if (T >= d) {
+      const k = Math.floor(T / d); R = T % d;
+      steps.push({ work: fr(T, d) + ' = ' + (R ? mix(k, R, d) : k), why: 'That is a whole or more. ' + T + ' ÷ ' + d + ' = ' + k + (R ? ' r ' + R : '') + '.' });
+      if (hasW) { steps.push({ work: W + ' + ' + k + ' = <b>' + (W + k) + '</b>', why: 'Add the new whole to the whole numbers.' }); }
+      W += k;
+    }
+    steps.push({ work: 'Answer: ' + showN(W, R, d), why: 'Check: the pieces are still ' + d + 'ths.', slot: 0 });
+    return { row: [{ t: 'v', v: dv(A.w, A.n, d) }, { t: 'op', s: '+' }, { t: 'v', v: dv(B.w, B.n, d) }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: dv(W, R, d) }], steps: steps };
+  }
+  function solveFracSub(q) {
+    const d = q.d, A = q.a, steps = [], tot = x => x.w * d + x.n, sp = c => ({ w: Math.floor(c / d), n: c % d });
+    const C = sp(tot(A) - tot(q.b));               /* start − subtrahend */
+    const Sx = q.miss ? C : q.b;                    /* the number actually subtracted in the steps */
+    const ans = q.miss ? q.b : C;                   /* what the student is asked for */
+    if (q.miss) steps.push({ work: 'Missing = ' + showP(A.w, A.n, d) + ' − ' + showP(C.w, C.n, d), why: 'To find the missing number, subtract the result from the start.' });
+    let w1 = A.w, n1 = A.n;
+    if (n1 < Sx.n) {
+      if (n1 === 0) steps.push({ work: w1 + ' = ' + mix(w1 - 1, d, d), why: 'There are no pieces to take from. Break 1 whole into ' + d + '/' + d + '.' });
+      else steps.push({ work: mix(w1, n1, d) + ' = ' + mix(w1 - 1, n1 + d, d), why: 'Not enough pieces. Break 1 whole into ' + d + '/' + d + ' and add it.' });
+      w1 -= 1; n1 += d;
+    }
+    const r = n1 - Sx.n, Wr = w1 - Sx.w;
+    steps.push({ work: n1 + ' − ' + Sx.n + ' = <b>' + r + '</b>', why: 'Subtract the tops. The bottoms stay ' + d + '.' });
+    if (Sx.w > 0) steps.push({ work: w1 + ' − ' + Sx.w + ' = <b>' + Wr + '</b>', why: 'Subtract the whole numbers.' });
+    steps.push({ work: 'Answer: ' + showN(ans.w, ans.n, d), why: q.miss ? 'Check: start − missing number = the result.' : 'Check: answer + the number taken away = the start.', slot: 0 });
+    const bv = q.miss ? { t: 'slot', k: 0 } : { t: 'v', v: dv(q.b.w, q.b.n, d) };
+    const cv = q.miss ? { t: 'v', v: dv(C.w, C.n, d) } : { t: 'slot', k: 0 };
+    return { row: [{ t: 'v', v: dv(A.w, A.n, d) }, { t: 'op', s: '−' }, bv, { t: 'op', s: '=' }, cv], slots: [{ v: dv(ans.w, ans.n, d) }], steps: steps };
+  }
+  function solveEquiv(q) {
+    const n = q.n, d = q.d, k = q.k, n2 = n * k, d2 = d * k, steps = [];
+    if (q.miss === 'd') {
+      steps.push({ work: n2 + ' ÷ ' + n + ' = <b>' + k + '</b>', why: 'Find what the top number was multiplied by.' });
+      steps.push({ work: d + ' × ' + k + ' = <b>' + d2 + '</b>', why: 'Do the same to the bottom number so the fraction keeps its value.' });
+    } else {
+      steps.push({ work: d2 + ' ÷ ' + d + ' = <b>' + k + '</b>', why: 'Find what the bottom number was multiplied by.' });
+      steps.push({ work: n + ' × ' + k + ' = <b>' + n2 + '</b>', why: 'Do the same to the top number so the fraction keeps its value.' });
+    }
+    steps.push({ work: 'Answer: ' + fr(n, d) + ' = <b>' + fr(n2, d2) + '</b>', why: 'Multiplying top and bottom by ' + k + ' makes the same amount in smaller pieces.', slot: 0 });
+    return { row: [{ t: 'v', v: { num: n, den: d } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: { num: n2, den: d2 }, q: q.miss === 'd' ? { num: n2, den: '?' } : { num: '?', den: d2 } }], steps: steps };
+  }
   function solve(kind, q) {
+    if (kind === 'frac_add') return solveFracAdd(q);
+    if (kind === 'frac_sub') return solveFracSub(q);
+    if (kind === 'equiv') return solveEquiv(q);
     if (kind === 'fact') return solveFact(q);
     if (kind === 'div_cols') return solveDiv(q);
     if (kind === 'mul_cols') return solveMul(q);
@@ -1175,6 +1234,56 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
       let miss = o.miss || 'r'; if (miss === 'mix') miss = r.pick(['r', 'x', 'y']);
       return { op: o.op, t: t, r: ans, miss: miss };
     },
+    /* Fractions with like denominators. o.mode: like | fm (mixed + fraction) | mm (mixed + mixed). Answers are always in lowest terms. */
+    frac_add(r, L, o) {
+      const mode = (o && o.mode) || 'like', dens = [null, [2, 3, 4, 5, 6, 8], [3, 4, 5, 6, 8, 10, 12], [5, 6, 7, 8, 9, 10, 12]][L];
+      for (let t = 0; t < 4000; t++) {
+        const d = r.pick(dens), pn = () => r.int(1, d - 1);
+        const a = { w: mode === 'mm' ? r.int(1, L === 1 ? 3 : 6) : mode === 'fm' ? r.int(1, L === 1 ? 3 : 7) : 0, n: pn() };
+        const b = { w: mode === 'mm' ? r.int(1, L === 1 ? 3 : 6) : 0, n: pn() };
+        const T = a.n + b.n, rem = T % d;
+        if (rem && gcd(rem, d) !== 1) continue;
+        if (L === 1 && T >= d && t < 3500) continue;                /* Easy: no regrouping */
+        if (L >= 2 && T < d && t < 3500) continue;                   /* Medium and Hard: regroup */
+        return { a: a, b: b, d: d };
+      }
+      return { a: { w: 0, n: 1 }, b: { w: 0, n: 1 }, d: 3 };
+    },
+    /* o.mode: like | whole_frac | mixed_frac | whole_mixed | mixed_mixed | missing (hidden subtrahend) */
+    frac_sub(r, L, o) {
+      const mode = (o && o.mode) || 'like', dens = [null, [2, 3, 4, 5, 6, 8], [3, 4, 5, 6, 8, 10, 12], [5, 6, 7, 8, 9, 10, 12]][L];
+      const wmax = L === 1 ? 4 : L === 2 ? 7 : 12;
+      for (let t = 0; t < 4000; t++) {
+        const d = r.pick(dens), pn = () => r.int(1, d - 1);
+        let a, b;
+        if (mode === 'like') { a = { w: 0, n: r.int(2, d - 1) }; b = { w: 0, n: r.int(1, a.n - 1 || 1) }; if (a.n < 2) continue; }
+        else if (mode === 'whole_frac') { a = { w: r.int(1, wmax), n: 0 }; b = { w: 0, n: pn() }; }
+        else if (mode === 'mixed_frac') { a = { w: r.int(1, wmax), n: pn() }; b = { w: 0, n: pn() }; }
+        else if (mode === 'whole_mixed') { a = { w: r.int(2, wmax + 1), n: 0 }; b = { w: r.int(1, a.w - 1), n: pn() }; }
+        else { a = { w: r.int(2, wmax + 1), n: pn() }; b = { w: r.int(1, a.w - 1), n: pn() }; }
+        const A = a.w * d + a.n, Bv = b.w * d + b.n, c = A - Bv;
+        if (c <= 0) continue;
+        if (c % d && gcd(c % d, d) !== 1) continue;
+        if (mode === 'missing' && (Bv % d && gcd(Bv % d, d) !== 1)) continue;
+        const reg = a.n < b.n;
+        if (mode === 'missing') {
+          /* start − ? = result: regroup is judged on start − result */
+          const cn = c % d; if ((L === 1) === (a.n < cn) && t < 3500) continue;
+          if (L >= 2 && !(a.n < cn) && t < 3500) continue;
+        } else if (mode !== 'like') {
+          if (L === 1 && reg && t < 3500) continue;
+          if (L >= 2 && !reg && t < 3500) continue;
+        }
+        return mode === 'missing' ? { a: a, b: b, d: d, miss: true } : { a: a, b: b, d: d };
+      }
+      return { a: { w: 2, n: 0 }, b: { w: 0, n: 1 }, d: 3 };
+    },
+    /* Equivalent fractions: n/d = ?/d2 (miss 'n'), n/d = n2/? (miss 'd'), or 'mix'. o.improper uses a top larger than the bottom. */
+    equiv(r, L, o) {
+      o = o || {}; const dens = [null, [2, 3, 4, 5], [2, 3, 4, 5, 6, 8], [3, 4, 5, 6, 7, 8, 9, 12]][L], kmax = L === 1 ? 4 : L === 2 ? 6 : 9;
+      const d = r.pick(dens), k = r.int(2, kmax), n = o.improper ? r.int(d + 1, d * (L === 1 ? 2 : 3)) : r.int(1, d - 1);
+      return { n: n, d: d, k: k, miss: o.miss === 'mix' ? r.pick(['n', 'n', 'd']) : (o.miss || 'n') };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -1242,6 +1351,19 @@ this.workerSrc)).WorkerMessageHandler})())}}class WorkerTransport{downloadInfoCa
     'multiplication-table-2to10-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 10], y: [2, 10], miss: 'mix' } },
     'multiplication-table-2to12-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 12], y: [2, 12], miss: 'mix' } },
     'division-facts-missing-number-1-12': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 12], y: [1, 12], miss: 'mix' } },
+    'adding-fractions-like-denominators': { kind: 'frac_add', level: 2, opts: { mode: 'like' } },
+    'adding-mixed-numbers-fractions-like-denominators': { kind: 'frac_add', level: 2, opts: { mode: 'fm' } },
+    'adding-mixed-numbers-like-denominators': { kind: 'frac_add', level: 2, opts: { mode: 'mm' } },
+    'subtracting-fractions-like-denominators': { kind: 'frac_sub', level: 2, opts: { mode: 'like' } },
+    'subtracting-fractions-from-whole-numbers': { kind: 'frac_sub', level: 2, opts: { mode: 'whole_frac' } },
+    'subtracting-fractions-from-mixed-numbers': { kind: 'frac_sub', level: 2, opts: { mode: 'mixed_frac' } },
+    'subtracting-mixed-numbers-from-whole-numbers': { kind: 'frac_sub', level: 2, opts: { mode: 'whole_mixed' } },
+    'subtracting-mixed-numbers-like-denominators': { kind: 'frac_sub', level: 2, opts: { mode: 'mixed_mixed' } },
+    'subtracting-mixed-numbers-missing-subtrahend': { kind: 'frac_sub', level: 2, opts: { mode: 'missing' } },
+    'writing-equivalent-fractions': { kind: 'equiv', level: 1, opts: { miss: 'n' } },
+    'writing-equivalent-fractions-pie-chart': { kind: 'equiv', level: 1, opts: { miss: 'n' } },
+    'equivalent-fractions': { kind: 'equiv', level: 2, opts: { miss: 'mix' } },
+    'equivalent-fractions-improper': { kind: 'equiv', level: 2, opts: { miss: 'mix', improper: true } },
     'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
     'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
     'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },
@@ -1632,6 +1754,7 @@ function render(){
 
   function slotHtml(k){
     var on = slotStep[k] >= 0 && S.s > slotStep[k];
+    if (p.slots[k].q && !on) return '<span class="slot qv">' + part(p.slots[k].q).replace('>?<', '><span class="qq">?</span><') + '</span>';
     return '<span class="slot' + (on ? ' on' : '') + '"><span class="ans">' + part(p.slots[k].v) + '</span><span class="qm">?</span></span>';
   }
   var h = '';

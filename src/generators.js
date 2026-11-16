@@ -159,6 +159,56 @@
       let miss = o.miss || 'r'; if (miss === 'mix') miss = r.pick(['r', 'x', 'y']);
       return { op: o.op, t: t, r: ans, miss: miss };
     },
+    /* Fractions with like denominators. o.mode: like | fm (mixed + fraction) | mm (mixed + mixed). Answers are always in lowest terms. */
+    frac_add(r, L, o) {
+      const mode = (o && o.mode) || 'like', dens = [null, [2, 3, 4, 5, 6, 8], [3, 4, 5, 6, 8, 10, 12], [5, 6, 7, 8, 9, 10, 12]][L];
+      for (let t = 0; t < 4000; t++) {
+        const d = r.pick(dens), pn = () => r.int(1, d - 1);
+        const a = { w: mode === 'mm' ? r.int(1, L === 1 ? 3 : 6) : mode === 'fm' ? r.int(1, L === 1 ? 3 : 7) : 0, n: pn() };
+        const b = { w: mode === 'mm' ? r.int(1, L === 1 ? 3 : 6) : 0, n: pn() };
+        const T = a.n + b.n, rem = T % d;
+        if (rem && gcd(rem, d) !== 1) continue;
+        if (L === 1 && T >= d && t < 3500) continue;                /* Easy: no regrouping */
+        if (L >= 2 && T < d && t < 3500) continue;                   /* Medium and Hard: regroup */
+        return { a: a, b: b, d: d };
+      }
+      return { a: { w: 0, n: 1 }, b: { w: 0, n: 1 }, d: 3 };
+    },
+    /* o.mode: like | whole_frac | mixed_frac | whole_mixed | mixed_mixed | missing (hidden subtrahend) */
+    frac_sub(r, L, o) {
+      const mode = (o && o.mode) || 'like', dens = [null, [2, 3, 4, 5, 6, 8], [3, 4, 5, 6, 8, 10, 12], [5, 6, 7, 8, 9, 10, 12]][L];
+      const wmax = L === 1 ? 4 : L === 2 ? 7 : 12;
+      for (let t = 0; t < 4000; t++) {
+        const d = r.pick(dens), pn = () => r.int(1, d - 1);
+        let a, b;
+        if (mode === 'like') { a = { w: 0, n: r.int(2, d - 1) }; b = { w: 0, n: r.int(1, a.n - 1 || 1) }; if (a.n < 2) continue; }
+        else if (mode === 'whole_frac') { a = { w: r.int(1, wmax), n: 0 }; b = { w: 0, n: pn() }; }
+        else if (mode === 'mixed_frac') { a = { w: r.int(1, wmax), n: pn() }; b = { w: 0, n: pn() }; }
+        else if (mode === 'whole_mixed') { a = { w: r.int(2, wmax + 1), n: 0 }; b = { w: r.int(1, a.w - 1), n: pn() }; }
+        else { a = { w: r.int(2, wmax + 1), n: pn() }; b = { w: r.int(1, a.w - 1), n: pn() }; }
+        const A = a.w * d + a.n, Bv = b.w * d + b.n, c = A - Bv;
+        if (c <= 0) continue;
+        if (c % d && gcd(c % d, d) !== 1) continue;
+        if (mode === 'missing' && (Bv % d && gcd(Bv % d, d) !== 1)) continue;
+        const reg = a.n < b.n;
+        if (mode === 'missing') {
+          /* start − ? = result: regroup is judged on start − result */
+          const cn = c % d; if ((L === 1) === (a.n < cn) && t < 3500) continue;
+          if (L >= 2 && !(a.n < cn) && t < 3500) continue;
+        } else if (mode !== 'like') {
+          if (L === 1 && reg && t < 3500) continue;
+          if (L >= 2 && !reg && t < 3500) continue;
+        }
+        return mode === 'missing' ? { a: a, b: b, d: d, miss: true } : { a: a, b: b, d: d };
+      }
+      return { a: { w: 2, n: 0 }, b: { w: 0, n: 1 }, d: 3 };
+    },
+    /* Equivalent fractions: n/d = ?/d2 (miss 'n'), n/d = n2/? (miss 'd'), or 'mix'. o.improper uses a top larger than the bottom. */
+    equiv(r, L, o) {
+      o = o || {}; const dens = [null, [2, 3, 4, 5], [2, 3, 4, 5, 6, 8], [3, 4, 5, 6, 7, 8, 9, 12]][L], kmax = L === 1 ? 4 : L === 2 ? 6 : 9;
+      const d = r.pick(dens), k = r.int(2, kmax), n = o.improper ? r.int(d + 1, d * (L === 1 ? 2 : 3)) : r.int(1, d - 1);
+      return { n: n, d: d, k: k, miss: o.miss === 'mix' ? r.pick(['n', 'n', 'd']) : (o.miss || 'n') };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -226,6 +276,19 @@
     'multiplication-table-2to10-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 10], y: [2, 10], miss: 'mix' } },
     'multiplication-table-2to12-missing-number': { kind: 'fact', level: 2, opts: { op: '*', x: [2, 12], y: [2, 12], miss: 'mix' } },
     'division-facts-missing-number-1-12': { kind: 'fact', level: 2, opts: { op: '/', x: [1, 12], y: [1, 12], miss: 'mix' } },
+    'adding-fractions-like-denominators': { kind: 'frac_add', level: 2, opts: { mode: 'like' } },
+    'adding-mixed-numbers-fractions-like-denominators': { kind: 'frac_add', level: 2, opts: { mode: 'fm' } },
+    'adding-mixed-numbers-like-denominators': { kind: 'frac_add', level: 2, opts: { mode: 'mm' } },
+    'subtracting-fractions-like-denominators': { kind: 'frac_sub', level: 2, opts: { mode: 'like' } },
+    'subtracting-fractions-from-whole-numbers': { kind: 'frac_sub', level: 2, opts: { mode: 'whole_frac' } },
+    'subtracting-fractions-from-mixed-numbers': { kind: 'frac_sub', level: 2, opts: { mode: 'mixed_frac' } },
+    'subtracting-mixed-numbers-from-whole-numbers': { kind: 'frac_sub', level: 2, opts: { mode: 'whole_mixed' } },
+    'subtracting-mixed-numbers-like-denominators': { kind: 'frac_sub', level: 2, opts: { mode: 'mixed_mixed' } },
+    'subtracting-mixed-numbers-missing-subtrahend': { kind: 'frac_sub', level: 2, opts: { mode: 'missing' } },
+    'writing-equivalent-fractions': { kind: 'equiv', level: 1, opts: { miss: 'n' } },
+    'writing-equivalent-fractions-pie-chart': { kind: 'equiv', level: 1, opts: { miss: 'n' } },
+    'equivalent-fractions': { kind: 'equiv', level: 2, opts: { miss: 'mix' } },
+    'equivalent-fractions-improper': { kind: 'equiv', level: 2, opts: { miss: 'mix', improper: true } },
     'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
     'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
     'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },
