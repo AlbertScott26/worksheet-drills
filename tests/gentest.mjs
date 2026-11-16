@@ -17,7 +17,28 @@ for (const [slug, cv] of Object.entries(G.COVERAGE)) for (const L of [1, 2, 3]) 
     total++;
     try {
       const sv = C.solve(cv.kind, p.q);
-      if (cv.kind === 'dec_to_frac' || cv.kind === 'frac_to_dec') {
+      if (/^dec_(cmp|order|h|add_cols|sub_cols|money)$/.test(cv.kind)) {
+        const q = p.q, P = n => Math.pow(10, n), dof = (v, d) => { const t = String(v).padStart(d + 1, '0'); return d ? t.slice(0, -d) + '.' + t.slice(-d) : t; }, strip = h => h.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        if (cv.kind === 'dec_cmp') {
+          const dp = Math.max(q.pa, q.pb), A = q.a * P(dp - q.pa), B = q.b * P(dp - q.pb);
+          if (sv.slots[0].v.sym !== (A < B ? '<' : A > B ? '>' : '=')) throw new Error('dec_cmp ' + JSON.stringify(q));
+        } else if (cv.kind === 'dec_order') {
+          const dp = Math.max(...q.ps), sc = q.v.map((x, i) => x * P(dp - q.ps[i])), srt = q.v.map((x, i) => i).sort((i, j) => q.dir === '<' ? sc[i] - sc[j] : sc[j] - sc[i]);
+          const want = srt.map(i => dof(q.v[i], q.ps[i])).join(' ' + q.dir + ' '), got = strip(sv.steps[sv.steps.length - 1].work);
+          if (new Set(sc).size !== 3 || got !== want) throw new Error('dec_order ' + got + ' vs ' + want);
+        } else if (cv.kind === 'dec_h') {
+          const dp = Math.max(q.pa, q.pb), A = q.a * P(dp - q.pa), B = q.b * P(dp - q.pb), R = q.op === '+' ? A + B : A - B;
+          const hid = q.miss === 'a' ? A : q.miss === 'b' ? B : R;
+          if (R <= 0 || sv.slots[0].v.w !== dof(hid, dp) || strip(sv.steps[sv.steps.length - 1].work) !== 'Answer: ' + dof(hid, dp)) throw new Error('dec_h ' + JSON.stringify(q));
+        } else if (cv.kind === 'dec_add_cols') {
+          const sum = q.addends.reduce((x, y) => x + y, 0); if (sv.col.answer !== dof(sum, q.dp) || sv.col.dp !== q.dp) throw new Error('dec_add_cols ' + JSON.stringify(q));
+          if (strip(sv.steps[sv.steps.length - 1].work) !== 'Answer: ' + dof(sum, q.dp)) throw new Error('dec add answer text');
+        } else if (cv.kind === 'dec_sub_cols') {
+          if (q.a <= q.b || sv.col.answer !== dof(q.a - q.b, q.dp)) throw new Error('dec_sub_cols ' + JSON.stringify(q));
+        } else {
+          const want = '$' + dof(q.p === 1 ? q.t * 10 : q.t, 2); if (sv.slots[0].v.w !== want) throw new Error('money ' + JSON.stringify(q));
+        }
+      } else if (cv.kind === 'dec_to_frac' || cv.kind === 'frac_to_dec') {
         const q = p.q, sl = sv.slots[0], w = q.w || 0;
         if (cv.kind === 'dec_to_frac') {
           const B = q.p === 1 ? 10 : 100, v = sl.v; if (w !== (v.w || 0) || v.num * B !== q.N * v.den || gcd(v.num, v.den) !== 1 || v.num >= v.den) throw new Error('dec_to_frac ' + JSON.stringify(q));

@@ -2,6 +2,7 @@
    Pure functions, no DOM. Each generator: (rnd, level) -> q, level = 1 (easy) | 2 (medium) | 3 (hard).
    COVERAGE maps a catalog sub-topic slug (K5 Learning URL slug) to { kind, level }. */
 (function (g) {
+  const pw10 = n => Math.pow(10, n);
   function gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
 
   function rng(seed) {                       /* mulberry32: same seed, same worksheet */
@@ -9,6 +10,7 @@
     const f = function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     f.int = (lo, hi) => lo + Math.floor(f() * (hi - lo + 1));
     f.pick = arr => arr[Math.floor(f() * arr.length)];
+    f.chance = pr => f() < pr;
     return f;
   }
 
@@ -225,6 +227,60 @@
       else { d = r.pick([2, 4, 5, 20, 25, 50, 10, 100]); n = r.int(1, d - 1); }
       return { w: mixed ? r.int(1, L === 1 ? 9 : 20) : 0, n: n, d: d };
     },
+    /* ---- decimals. Values are integers scaled by 10^places; q carries the places. ---- */
+    dec_cmp(r, L) {
+      const wmax = L === 1 ? 9 : L === 2 ? 9 : 99, rv = (p) => { let f; do { f = r.int(1, pw10(p) - 1); } while (p === 2 && f % 10 === 0); return f; };
+      const pa = L === 1 ? 1 : r.pick([1, 2]), pb = L === 1 ? 1 : r.pick([1, 2]);
+      const wa = L === 1 ? r.int(0, 3) : r.int(0, wmax), wb = r.chance(0.55) ? wa : r.int(0, wmax);
+      const a = wa * pw10(pa) + rv(pa);
+      if (L >= 2 && pa === 1 && r.chance(0.12)) return { a: a, pa: 1, b: a * 10, pb: 2 };      /* equal values written with different places */
+      return { a: a, pa: pa, b: wb * pw10(pb) + rv(pb), pb: pb };
+    },
+    dec_order(r, L) {
+      const rv = (p) => { let f; do { f = r.int(1, pw10(p) - 1); } while (p === 2 && f % 10 === 0); return f; };
+      for (;;) {
+        const ps = [0, 1, 2].map(() => L === 1 ? 1 : r.pick([1, 2])), base = L === 3 ? 99 : L === 2 ? 9 : 0;
+        const wh = r.int(0, base), v = ps.map(p => (r.chance(0.7) ? wh : r.int(0, base)) * pw10(p) + rv(p));
+        const sc = v.map((x, i) => x * pw10(2 - ps[i]));
+        if (new Set(sc).size === 3) return { v: v, ps: ps, dir: r.pick(['<', '>']) };
+      }
+    },
+    /* o = { op:'+'|'-', places:'1'|'1plus2'|'1or2', miss:'r'|'a'|'b'|'mix' } */
+    dec_h(r, L, o) {
+      o = o || {}; const op = o.op || '+', wmax = L === 1 ? 0 : L === 2 ? 9 : 99;
+      const rv = (p) => { let f; do { f = r.int(1, pw10(p) - 1); } while (p === 2 && f % 10 === 0); return f; };
+      for (let t = 0; t < 2000; t++) {
+        let pa = 1, pb = 1;
+        if (o.places === '1plus2') { pa = r.pick([1, 2]); pb = 3 - pa; } else if (o.places === '1or2') { pa = r.pick([1, 2]); pb = r.pick([1, 2]); }
+        const a = r.int(0, wmax) * pw10(pa) + rv(pa), b = r.int(0, wmax) * pw10(pb) + rv(pb), dp = Math.max(pa, pb);
+        const A = a * pw10(dp - pa), B = b * pw10(dp - pb);
+        let q = { op: op, a: a, b: b, pa: pa, pb: pb, miss: o.miss === 'mix' ? r.pick(['a', 'b']) : (o.miss || 'r') };
+        if (op === '-') { if (A <= B) { if (A === B) continue; q = { op: op, a: b, b: a, pa: pb, pb: pa, miss: q.miss }; } }
+        const A2 = q.a * pw10(dp - q.pa), B2 = q.b * pw10(dp - q.pb), R = op === '+' ? A2 + B2 : A2 - B2;
+        if (L === 1 && op === '+' && R >= pw10(dp)) continue;   /* Easy: stay under 1 */
+        if (L >= 2 && op === '+' && (R % pw10(dp)) < 0) continue;
+        if (R <= 0) continue;
+        return q;
+      }
+      return { op: '+', a: 3, b: 4, pa: 1, pb: 1, miss: 'r' };
+    },
+    /* Column decimals. o.op '+'|'-'. Places: 2 on Easy, 1 or 2 on Medium and Hard. */
+    dec_add_cols(r, L, o) {
+      const dp = 2, W = L === 1 ? 1 : L === 2 ? 2 : 3;
+      const mk = () => { const p = L === 1 ? 2 : r.pick([1, 2, 2]); let f; do { f = r.int(1, pw10(p) - 1); } while (p === 2 && f % 10 === 0); return (r.int(1, pw10(W) - 1)) * pw10(p) * pw10(2 - p) + f * pw10(2 - p); };
+      return { addends: [mk(), mk()], dp: dp };
+    },
+    dec_sub_cols(r, L, o) {
+      const dp = 2, W = L === 1 ? 1 : L === 2 ? 2 : 3;
+      for (;;) {
+        const mk = () => { const p = L === 1 ? 2 : r.pick([1, 2, 2]); let f; do { f = r.int(1, pw10(p) - 1); } while (p === 2 && f % 10 === 0); return (r.int(0, pw10(W) - 1)) * 100 + f * pw10(2 - p); };
+        const a = mk(), b = mk(); if (a > b + 5) return { a: a, b: b, dp: dp };
+      }
+    },
+    dec_money(r, L) {
+      const p = L === 1 ? 1 : r.pick([1, 2]); let f; do { f = r.int(p === 1 ? 1 : 1, pw10(p) - 1); } while (L < 3 && p === 2 && f % 10 === 0);
+      return { t: r.int(0, L === 1 ? 9 : 99) * pw10(p) + f, p: p };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -309,6 +365,18 @@
     'decimals-to-mixed-numbers': { kind: 'dec_to_frac', level: 2, opts: { mixed: true } },
     'fractions-to-decimals': { kind: 'frac_to_dec', level: 2, opts: {} },
     'mixed-numbers-to-decimals': { kind: 'frac_to_dec', level: 2, opts: { mixed: true } },
+    'compare-decimals': { kind: 'dec_cmp', level: 2, opts: {} },
+    'order-decimals': { kind: 'dec_order', level: 2, opts: {} },
+    'adding-decimals-1-digit': { kind: 'dec_h', level: 1, opts: { op: '+', places: '1' } },
+    'adding-decimals-1-digit-missing-addend': { kind: 'dec_h', level: 1, opts: { op: '+', places: '1', miss: 'mix' } },
+    'adding-decimals-1-digit-plus-2-digit': { kind: 'dec_h', level: 2, opts: { op: '+', places: '1plus2' } },
+    'adding-decimals-1or2-digit': { kind: 'dec_h', level: 2, opts: { op: '+', places: '1or2' } },
+    'adding-decimals-in-columns-2-digit': { kind: 'dec_add_cols', level: 2, opts: {} },
+    'subtracting-decimals-1-digit': { kind: 'dec_h', level: 1, opts: { op: '-', places: '1' } },
+    'subtracting-decimals-1or2-digit': { kind: 'dec_h', level: 2, opts: { op: '-', places: '1or2' } },
+    'subtracting-decimals-1-digit-missing-number': { kind: 'dec_h', level: 1, opts: { op: '-', places: '1', miss: 'mix' } },
+    'subtracting-decimals-in-columns': { kind: 'dec_sub_cols', level: 2, opts: {} },
+    'money-notation': { kind: 'dec_money', level: 2, opts: {} },
     'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
     'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
     'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },

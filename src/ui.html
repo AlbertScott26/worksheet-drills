@@ -113,6 +113,7 @@ body.moved #hint{display:none}
 .cr .op{width:1.6em}
 .cm{display:inline-block;width:.3em;text-align:center;color:var(--cream);font-size:.7em;line-height:1.6}
 .cr .cm{width:.6em}
+.cm.dpt{width:.35em;font-size:1em;line-height:1.1;font-weight:700}
 .op{display:inline-block;width:.8em;text-align:center;color:var(--cream)}
 .cc.hi{background:var(--panel)}
 .cc.st{text-decoration:line-through;text-decoration-thickness:.07em;opacity:.55}
@@ -576,7 +577,8 @@ function colHtml(col, f){
     var h = '<div class="cl ' + cls + '"><span class="op">' + (op || '') + '</span>';
     for (var c = W - 1; c >= 0; c--) {
       h += fn(c);
-      if (c > 0 && c % 3 === 0) h += '<span class="cm">' + (showCm(c) ? ',' : '') + '</span>';
+      if (col.dp) { if (c === col.dp) h += '<span class="cm dpt">' + (cls === 'cr' ? '' : '.') + '</span>'; }
+      else if (c > 0 && c % 3 === 0) h += '<span class="cm">' + (showCm(c) ? ',' : '') + '</span>';
     }
     return h + '</div>';
   }

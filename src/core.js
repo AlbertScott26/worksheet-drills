@@ -15,6 +15,12 @@
     frac_sub: { label: 'SUBTRACT FRACTIONS', title: 'Subtracting Fractions and Mixed Numbers', whole: false, firstEq: false },
     dec_to_frac: { label: 'DECIMALS TO FRACTIONS', title: 'Decimals to Fractions', whole: false, firstEq: false },
     frac_to_dec: { label: 'FRACTIONS TO DECIMALS', title: 'Fractions to Decimals', whole: false, firstEq: false },
+    dec_cmp: { label: 'COMPARE DECIMALS', title: 'Compare Decimals', whole: false, firstEq: false },
+    dec_order: { label: 'ORDER DECIMALS', title: 'Order Decimals', whole: false, firstEq: false },
+    dec_h: { label: 'DECIMAL ARITHMETIC', title: 'Adding and Subtracting Decimals', whole: false, firstEq: false },
+    dec_add_cols: { label: 'ADD DECIMALS IN COLUMNS', title: 'Adding Decimals in Columns', whole: false, firstEq: false },
+    dec_sub_cols: { label: 'SUBTRACT DECIMALS IN COLUMNS', title: 'Subtracting Decimals in Columns', whole: false, firstEq: false },
+    dec_money: { label: 'DECIMALS AND MONEY', title: 'Decimals and Money Notation', whole: false, firstEq: false },
     equiv: { label: 'EQUIVALENT FRACTIONS', title: 'Equivalent Fractions', whole: false, firstEq: false },
     fact: { label: 'QUICK FACTS', title: 'Quick Facts', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
@@ -250,14 +256,19 @@
   const PL = ['ones', 'tens', 'hundreds', 'thousands', 'ten thousands', 'hundred thousands', 'millions'];
   const PS = ['one', 'ten', 'hundred', 'thousand', 'ten thousand', 'hundred thousand', 'million'];
   const CAP = w => w.charAt(0).toUpperCase() + w.slice(1);
-  const unit = (n, c) => n + ' ' + (n === 1 ? PS[c] : PL[c]);
+  let CURDP = 0;                                   /* decimal places of the column problem being solved (0 = whole numbers) */
+  const DPL = ['tenths', 'hundredths', 'thousandths'], DPS = ['tenth', 'hundredth', 'thousandth'];
+  const NL = k => CURDP ? (k < CURDP ? DPL[CURDP - 1 - k] : PL[k - CURDP]) : PL[k];
+  const NS = k => CURDP ? (k < CURDP ? DPS[CURDP - 1 - k] : PS[k - CURDP]) : PS[k];
+  const unit = (n, c) => n + ' ' + (n === 1 ? NS(c) : NL(c));
   const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const cellsOf = (n, W) => { const t = String(n), o = []; for (let c = 0; c < W; c++) o.push(c < t.length ? t[t.length - 1 - c] : ''); return o; };
 
   function solveAdd(q) {
-    const A = q.addends, sum = A.reduce((x, y) => x + y, 0), W = String(sum).length;
-    const maxLen = Math.max.apply(null, A.map(n => String(n).length));
-    const lines = A.map(n => ({ cells: cellsOf(n, W) }));
+    const dp = q.dp || 0; CURDP = dp;
+    const A = q.addends, sum = A.reduce((x, y) => x + y, 0), W = Math.max(String(sum).length, dp + 1);
+    const maxLen = Math.max(dp + 1, Math.max.apply(null, A.map(n => String(n).length)));
+    const lines = A.map(n => ({ cells: padDp(cellsOf(n, W), dp) }));
     const blank = () => Array(W).fill('');
     let carry = 0, ans = blank(), cr = blank();
     const frames = [{ hi: -1, ans: ans.slice(), carry: cr.slice() }], steps = [];
@@ -269,9 +280,9 @@
       for (let k = 0; k < put.length; k++) ans[c + k] = put[put.length - 1 - k];
       const out = (last || total < 10) ? 0 : Math.floor(total / 10);
       if (out && c + 1 < W) cr[c + 1] = String(out);
-      let work = CAP(PL[c]) + ': ' + terms.join(' + ') + ' = ' + total + '<br>' + (out ? 'write <b>' + put + '</b>, carry <b>' + out + '</b>' : 'write <b>' + put + '</b>');
+      let work = CAP(NL(c)) + ': ' + terms.join(' + ') + ' = ' + total + '<br>' + (out ? 'write <b>' + put + '</b>, carry <b>' + out + '</b>' : 'write <b>' + put + '</b>');
       let why;
-      if (out) why = total + ' ' + PL[c] + ' is ' + unit(out, c + 1) + ' and ' + unit(total % 10, c) + ', so write ' + (total % 10) + ' and carry ' + out + '.';
+      if (out) why = total + ' ' + NL(c) + ' is ' + unit(out, c + 1) + ' and ' + unit(total % 10, c) + ', so write ' + (total % 10) + ' and carry ' + out + '.';
       else if (last && total >= 10) why = 'There is no column to the left, so write all of ' + total + '.';
       else if (carry) why = 'Add the carried ' + carry + ' too. The total is under 10, so write it.';
       else why = 'The total is under 10, so just write it.';
@@ -279,15 +290,19 @@
       carry = out;
       frames.push({ hi: c, ans: ans.slice(), carry: cr.slice() });
     }
-    steps.push({ work: 'Answer: <b>' + fmtN(sum) + '</b>', why: 'No more columns, so the answer is the number under the line.' });
+    steps.push({ work: 'Answer: <b>' + (dp ? decOf(sum, dp) : fmtN(sum)) + '</b>', why: dp ? 'Bring the decimal point straight down into the answer.' : 'No more columns, so the answer is the number under the line.' });
     frames.push({ hi: -1, ans: ans.slice(), carry: cr.slice() });
-    return { col: { op: '+', lines: lines, W: W, ansLen: W, frames: frames, answer: String(sum) }, slots: [], steps: steps };
+    return { col: { op: '+', lines: lines, W: W, ansLen: W, dp: dp, frames: frames, answer: dp ? decOf(sum, dp) : String(sum) }, slots: [], steps: steps };
   }
 
+  const padDp = (cells, dp) => { if (dp) for (let c = 0; c <= dp && c < cells.length; c++) if (cells[c] === '') cells[c] = '0'; return cells; };
+  const decOf = (v, p) => { const t = String(v).padStart(p + 1, '0'); return p ? t.slice(0, -p) + '.' + t.slice(-p) : t; };
+
   function solveSub(q) {
-    const a = q.a, b = q.b, diff = a - b, W = String(a).length, dl = String(diff).length;
+    const dp = q.dp || 0; CURDP = dp;
+    const a = q.a, b = q.b, diff = a - b, W = Math.max(String(a).length, dp + 1), dl = Math.max(String(diff).length, dp + 1);
     if (diff <= 0) throw new Error('Subtraction needs a bigger top number.');
-    const top = cellsOf(a, W).map(Number), bot = cellsOf(b, W), cur = top.slice();
+    const top = padDp(cellsOf(a, W), dp).map(Number), bot = padDp(cellsOf(b, W), dp), cur = top.slice();
     const nv = Array(W).fill(''), st = Array(W).fill(false), ans = Array(W).fill('');
     const snap = hi => ({ hi: hi, ans: ans.slice(), top: nv.map((v, i) => ({ nv: v, st: st[i] })) });
     const frames = [snap(-1)], steps = [];
@@ -298,24 +313,24 @@
         let j = c + 1; while (cur[j] === 0) j++;
         const before = cur.slice(), ch = [];
         cur[j] -= 1; for (let k = c + 1; k < j; k++) cur[k] = 9; cur[c] += 10;
-        for (let k = j; k >= c; k--) { nv[k] = String(cur[k]); st[k] = true; ch.push(PL[k] + ' ' + before[k] + ' → <b>' + cur[k] + '</b>'); }
-        const work = CAP(PL[c]) + ': ' + before[c] + ' is less than ' + bd + '<br>regroup: ' + ch.join(', ');
-        const why = j === c + 1 ? 'Not enough ' + PL[c] + '. Trade 1 ' + PS[j] + ' for 10 ' + PL[c] + '.'
-          : 'The next columns are 0, so borrow from the ' + PL[j] + '. Each 0 in between becomes 9.';
+        for (let k = j; k >= c; k--) { nv[k] = String(cur[k]); st[k] = true; ch.push(NL(k) + ' ' + before[k] + ' → <b>' + cur[k] + '</b>'); }
+        const work = CAP(NL(c)) + ': ' + before[c] + ' is less than ' + bd + '<br>regroup: ' + ch.join(', ');
+        const why = j === c + 1 ? 'Not enough ' + NL(c) + '. Trade 1 ' + NS(j) + ' for 10 ' + NL(c) + '.'
+          : 'The next columns are 0, so borrow from the ' + NL(j) + '. Each 0 in between becomes 9.';
         steps.push({ work: work, why: why }); frames.push(snap(c));
         regrouped = true;
       }
       const r = cur[c] - bd, lead = c >= dl;
       if (!lead) ans[c] = String(r);
       let work, why;
-      if (bot[c] === '') { work = CAP(PL[c]) + ': nothing to subtract<br>bring down <b>' + (lead ? '' : r) + '</b>'; why = 'There is no bottom digit here, so bring the top digit down.'; }
-      else { work = CAP(PL[c]) + ': ' + cur[c] + ' − ' + bd + ' = <b>' + r + '</b>'; why = regrouped ? 'Now there are enough ' + PL[c] + ', so subtract.' : (nv[c] ? 'Use the new digit after trading, then subtract.' : 'Subtract the digits in the ' + PL[c] + ' column.'); }
-      if (lead) { work = CAP(PL[c]) + ': ' + cur[c] + ' − ' + bd + ' = 0'; why = 'A zero at the front is not written.'; }
+      if (bot[c] === '') { work = CAP(NL(c)) + ': nothing to subtract<br>bring down <b>' + (lead ? '' : r) + '</b>'; why = 'There is no bottom digit here, so bring the top digit down.'; }
+      else { work = CAP(NL(c)) + ': ' + cur[c] + ' − ' + bd + ' = <b>' + r + '</b>'; why = regrouped ? 'Now there are enough ' + NL(c) + ', so subtract.' : (nv[c] ? 'Use the new digit after trading, then subtract.' : 'Subtract the digits in the ' + NL(c) + ' column.'); }
+      if (lead) { work = CAP(NL(c)) + ': ' + cur[c] + ' − ' + bd + ' = 0'; why = 'A zero at the front is not written.'; }
       steps.push({ work: work, why: why }); frames.push(snap(c));
     }
-    steps.push({ work: 'Answer: <b>' + fmtN(diff) + '</b>', why: 'Check: ' + fmtN(diff) + ' + ' + fmtN(b) + ' = ' + fmtN(a) + '.' });
+    steps.push({ work: 'Answer: <b>' + (dp ? decOf(diff, dp) : fmtN(diff)) + '</b>', why: dp ? 'Check: ' + decOf(diff, dp) + ' + ' + decOf(b, dp) + ' = ' + decOf(a, dp) + '.' : 'Check: ' + fmtN(diff) + ' + ' + fmtN(b) + ' = ' + fmtN(a) + '.' });
     frames.push(snap(-1));
-    return { col: { op: '−', lines: [{ cells: cellsOf(a, W) }, { cells: cellsOf(b, W) }], W: W, ansLen: dl, frames: frames, answer: String(diff) }, slots: [], steps: steps };
+    return { col: { op: '−', lines: [{ cells: padDp(cellsOf(a, W), dp) }, { cells: padDp(cellsOf(b, W), dp) }], W: W, ansLen: dl, dp: dp, frames: frames, answer: dp ? decOf(diff, dp) : String(diff) }, slots: [], steps: steps };
   }
 
   function solveMul(q) {
@@ -482,6 +497,60 @@
     steps.push({ work: 'Answer: <b>' + fin + '</b>', why: 'Check: ' + fin + ' says the same amount as the fraction.', slot: 0 });
     return { row: [{ t: 'v', v: w > 0 ? { w: w, num: n, den: d } : { num: n, den: d } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: { w: fin } }], steps: steps };
   }
+  /* ---- decimals: compare, order, horizontal add/subtract, money. Values are scaled integers with their own place counts. ---- */
+  const PLN = p => p === 1 ? 'tenths' : p === 2 ? 'hundredths' : 'thousandths';
+  const pw = n => Math.pow(10, n);
+  const dvw = (v, p) => ({ w: decOf(v, p) });
+  function solveDecCmp(q) {
+    const dp = Math.max(q.pa, q.pb), A = q.a * pw(dp - q.pa), B = q.b * pw(dp - q.pb), steps = [];
+    const sa = decOf(q.a, q.pa), sb = decOf(q.b, q.pb), ea = decOf(A, dp), eb = decOf(B, dp);
+    if (q.pa !== q.pb) steps.push({ work: sa + ' = <b>' + ea + '</b>' + '&nbsp;&nbsp;·&nbsp;&nbsp;' + sb + ' = <b>' + eb + '</b>', why: 'Add a zero at the end so both have ' + dp + ' places. The value does not change.' });
+    const sym = A < B ? '<' : A > B ? '>' : '=', symH = sym === '<' ? '&lt;' : sym === '>' ? '&gt;' : '=';
+    steps.push({ work: A + ' ' + symH + ' ' + B + ' ' + PLN(dp), why: 'Same places now, so compare them like whole numbers. ' + (A === B ? 'They are equal.' : A + ' is ' + (A < B ? 'less' : 'greater') + ' than ' + B + '.') });
+    steps.push({ work: sa + ' <b>' + symH + '</b> ' + sb, why: 'Put the symbol between the original numbers.', slot: 0 });
+    return { row: [{ t: 'v', v: { w: sa } }, { t: 'slot', k: 0 }, { t: 'v', v: { w: sb } }], slots: [{ v: { sym: sym } }], steps: steps };
+  }
+  function solveDecOrder(q) {
+    const ps = q.ps, dp = Math.max.apply(null, ps), desc = q.dir === '>', symH = desc ? '&gt;' : '&lt;', steps = [];
+    const sc = q.v.map((x, i) => x * pw(dp - ps[i])), orig = q.v.map((x, i) => decOf(x, ps[i]));
+    if (ps.some(x => x !== dp)) steps.push({ work: sc.map(x => decOf(x, dp)).join('&nbsp;&nbsp;·&nbsp;&nbsp;'), why: 'Add zeros so every number has ' + dp + ' places.' });
+    const idx = [0, 1, 2].sort((i, j) => desc ? sc[j] - sc[i] : sc[i] - sc[j]);
+    steps.push({ work: 'As whole numbers: <b>' + idx.map(i => sc[i]).join(' ' + symH + ' ') + '</b>', why: 'Same places, so put them in order like whole numbers.' });
+    steps.push({ work: idx.map(i => orig[i]).join(' <b>' + symH + '</b> '), why: 'Write the original decimals in that order.' });
+    const row = []; q.v.forEach((x, i) => { if (i) row.push({ t: 'op', s: '·' }); row.push({ t: 'v', v: { w: orig[i] } }); });
+    return { row: row, slots: [], steps: steps, hdr: desc ? 'ORDER: GREATEST → LEAST' : 'ORDER: LEAST → GREATEST' };
+  }
+  function solveDecH(q) {
+    const miss = q.miss || 'r', dp = Math.max(q.pa, q.pb), A = q.a * pw(dp - q.pa), B = q.b * pw(dp - q.pb), add = q.op === '+';
+    const R = add ? A + B : A - B, steps = [], nm = PLN(dp);
+    const sa = decOf(q.a, q.pa), sb = decOf(q.b, q.pb);
+    const hid = miss === 'r' ? R : miss === 'a' ? A : B;
+    /* x ⊕ y = z computed in steps: the arithmetic actually done */
+    let x, y, z, opS;
+    if (miss === 'r') { x = A; y = B; z = R; opS = add ? '+' : '−'; }
+    else if (add) { z = miss === 'a' ? R - B : R - A; x = R; y = miss === 'a' ? B : A; opS = '−'; }
+    else if (miss === 'b') { x = A; y = R; z = A - R; opS = '−'; }
+    else { x = R; y = B; z = R + B; opS = '+'; }
+    if (q.pa !== q.pb && miss === 'r') steps.push({ work: (q.pa < dp ? sa + ' = <b>' + decOf(A, dp) + '</b>' : sb + ' = <b>' + decOf(B, dp) + '</b>'), why: 'Add a zero so both numbers have ' + dp + ' places.' });
+    if (miss !== 'r') steps.push({ work: 'Missing = ' + decOf(x, dp) + ' ' + opS + ' ' + decOf(y, dp), why: miss === 'a' && !add ? 'To find the start number, add the two numbers you can see.' : 'Use the opposite operation to find the missing number.' });
+    steps.push({ work: x + ' ' + opS + ' ' + y + ' = <b>' + z + '</b> ' + nm, why: 'Both are ' + nm + ', so just ' + (opS === '+' ? 'add' : 'subtract') + ' like whole numbers.' });
+    steps.push({ work: 'Answer: <b>' + decOf(z, dp) + '</b>', why: 'Put the decimal point so there are ' + dp + ' digit' + (dp > 1 ? 's' : '') + ' after it.', slot: 0 });
+    const r = decOf(R, dp);
+    const seg = (k, val, own) => k === miss ? { t: 'slot', k: 0 } : { t: 'v', v: { w: val } };
+    return { row: [seg('a', sa), { t: 'op', s: add ? '+' : '−' }, seg('b', sb), { t: 'op', s: '=' }, seg('r', r)], slots: [{ v: { w: decOf(hid, dp) } }], steps: steps, hdr: add ? 'ADD DECIMALS' : 'SUBTRACT DECIMALS' };
+  }
+  function solveDecMoney(q) {
+    const t = q.t, p = q.p, w = Math.floor(t / pw(p)), steps = [];
+    const dec = decOf(t, p);
+    if (p === 1) {
+      steps.push({ work: dec + ' = <b>' + decOf(t * 10, 2) + '</b>', why: 'Money has 2 places for the cents. Add a zero.' });
+    } else if (t % 100 === 0) {
+      steps.push({ work: dec + ' = <b>' + decOf(t, 2) + '</b>', why: 'Money always has 2 places for the cents. Add zeros.' });
+    }
+    const m = decOf(p === 1 ? t * 10 : t, 2);
+    steps.push({ work: 'Answer: <b>$' + m + '</b>', why: 'Put the dollar sign in front. The numbers after the point are the cents.', slot: 0 });
+    return { row: [{ t: 'v', v: { w: dec } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: { w: '$' + m } }], steps: steps };
+  }
   function solveEquiv(q) {
     const n = q.n, d = q.d, k = q.k, n2 = n * k, d2 = d * k, steps = [];
     if (q.miss === 'd') {
@@ -495,10 +564,17 @@
     return { row: [{ t: 'v', v: { num: n, den: d } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: { num: n2, den: d2 }, q: q.miss === 'd' ? { num: n2, den: '?' } : { num: '?', den: d2 } }], steps: steps };
   }
   function solve(kind, q) {
+    CURDP = 0;
     if (kind === 'frac_add') return solveFracAdd(q);
     if (kind === 'frac_sub') return solveFracSub(q);
     if (kind === 'equiv') return solveEquiv(q);
     if (kind === 'dec_to_frac') return solveDecToFrac(q);
+    if (kind === 'dec_cmp') return solveDecCmp(q);
+    if (kind === 'dec_order') return solveDecOrder(q);
+    if (kind === 'dec_h') return solveDecH(q);
+    if (kind === 'dec_money') return solveDecMoney(q);
+    if (kind === 'dec_add_cols') return solveAdd(q);
+    if (kind === 'dec_sub_cols') return solveSub(q);
     if (kind === 'frac_to_dec') return solveFracToDec(q);
     if (kind === 'fact') return solveFact(q);
     if (kind === 'div_cols') return solveDiv(q);
