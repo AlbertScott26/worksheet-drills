@@ -209,6 +209,22 @@
       const d = r.pick(dens), k = r.int(2, kmax), n = o.improper ? r.int(d + 1, d * (L === 1 ? 2 : 3)) : r.int(1, d - 1);
       return { n: n, d: d, k: k, miss: o.miss === 'mix' ? r.pick(['n', 'n', 'd']) : (o.miss || 'n') };
     },
+    /* Decimals (tenths, hundredths) to fractions. o.mixed adds a whole number. Answers in lowest terms. */
+    dec_to_frac(r, L, o) {
+      const mixed = !!(o && o.mixed); let p, N;
+      if (L === 1) { p = r.pick([1, 2]); N = r.int(1, 9); }
+      else if (L === 2) { p = r.pick([1, 2, 2]); do { N = p === 1 ? r.int(1, 9) : r.int(11, 99); } while (p === 2 && N % 10 === 0); }
+      else { p = r.pick([1, 2, 2, 2]); N = p === 1 ? r.int(1, 9) : r.int(10, 99); }
+      return { w: mixed ? r.int(1, L === 1 ? 9 : 20) : 0, N: N, p: p };
+    },
+    /* Fractions to decimals. Easy: tenths and hundredths with a small top. Medium: any tenths/hundredths. Hard: also halves, fourths, fifths, 20ths, 25ths, 50ths. */
+    frac_to_dec(r, L, o) {
+      const mixed = !!(o && o.mixed); let d, n;
+      if (L === 1) { d = r.pick([10, 100]); n = r.int(1, 9); }
+      else if (L === 2) { d = r.pick([10, 100, 100]); do { n = r.int(1, d - 1); } while (d === 100 && n % 10 === 0); }
+      else { d = r.pick([2, 4, 5, 20, 25, 50, 10, 100]); n = r.int(1, d - 1); }
+      return { w: mixed ? r.int(1, L === 1 ? 9 : 20) : 0, n: n, d: d };
+    },
     order3(r, L) {
       for (;;) {
         const vs = [];
@@ -289,6 +305,10 @@
     'writing-equivalent-fractions-pie-chart': { kind: 'equiv', level: 1, opts: { miss: 'n' } },
     'equivalent-fractions': { kind: 'equiv', level: 2, opts: { miss: 'mix' } },
     'equivalent-fractions-improper': { kind: 'equiv', level: 2, opts: { miss: 'mix', improper: true } },
+    'decimals-to-fractions': { kind: 'dec_to_frac', level: 2, opts: {} },
+    'decimals-to-mixed-numbers': { kind: 'dec_to_frac', level: 2, opts: { mixed: true } },
+    'fractions-to-decimals': { kind: 'frac_to_dec', level: 2, opts: {} },
+    'mixed-numbers-to-decimals': { kind: 'frac_to_dec', level: 2, opts: { mixed: true } },
     'single-digit-division-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'none' } },
     'long-division-with-remainder-within-1-100': { kind: 'div_cols', level: 2, opts: { d: 2, rem: 'maybe' } },
     'long-division-3x1-digit-no-remainder': { kind: 'div_cols', level: 2, opts: { d: 3, rem: 'none' } },

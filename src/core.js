@@ -13,6 +13,8 @@
     order3: { label: 'ORDERING FRACTIONS', title: 'Ordering Three Fractions', whole: false, firstEq: false },
     frac_add: { label: 'ADD FRACTIONS', title: 'Adding Fractions and Mixed Numbers', whole: false, firstEq: false },
     frac_sub: { label: 'SUBTRACT FRACTIONS', title: 'Subtracting Fractions and Mixed Numbers', whole: false, firstEq: false },
+    dec_to_frac: { label: 'DECIMALS TO FRACTIONS', title: 'Decimals to Fractions', whole: false, firstEq: false },
+    frac_to_dec: { label: 'FRACTIONS TO DECIMALS', title: 'Fractions to Decimals', whole: false, firstEq: false },
     equiv: { label: 'EQUIVALENT FRACTIONS', title: 'Equivalent Fractions', whole: false, firstEq: false },
     fact: { label: 'QUICK FACTS', title: 'Quick Facts', whole: false, firstEq: false },
     add_cols: { label: 'ADD IN COLUMNS', title: 'Adding in Columns', whole: false, firstEq: false },
@@ -454,6 +456,32 @@
     const cv = q.miss ? { t: 'v', v: dv(C.w, C.n, d) } : { t: 'slot', k: 0 };
     return { row: [{ t: 'v', v: dv(A.w, A.n, d) }, { t: 'op', s: '−' }, bv, { t: 'op', s: '=' }, cv], slots: [{ v: dv(ans.w, ans.n, d) }], steps: steps };
   }
+  /* ---- decimal <-> fraction (tenths and hundredths) ---- */
+  const decStr = (w, N, p) => w + '.' + String(N).padStart(p, '0');
+  function solveDecToFrac(q) {
+    const w = q.w || 0, N = q.N, p = q.p, B = p === 1 ? 10 : 100, nm = p === 1 ? 'tenths' : 'hundredths', steps = [];
+    const g = gcd(N, B), n2 = N / g, d2 = B / g, txt = decStr(w, N, p);
+    if (w > 0) steps.push({ work: 'Whole number: <b>' + w + '</b>', why: 'The whole number stays in front. Work on the part after the point.' });
+    steps.push({ work: (w > 0 ? '.' + String(N).padStart(p, '0') : txt) + ' = ' + N + ' ' + nm + ' = ' + fr(N, B), why: 'The last digit is in the ' + nm + ' place, so the bottom number is ' + B + '.' });
+    if (g > 1) steps.push({ work: fr(N, B) + ' = ' + fr(n2, d2), why: 'Divide the top and bottom by ' + g + '. It is the biggest number that goes into both.' });
+    steps.push({ work: 'Answer: ' + (w > 0 ? mix(w, n2, d2) : fr(n2, d2)), why: 'The fraction is in lowest terms because nothing else divides both numbers.', slot: 0 });
+    return { row: [{ t: 'v', v: { w: txt } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: w > 0 ? { w: w, num: n2, den: d2 } : { num: n2, den: d2 } }], steps: steps };
+  }
+  function solveFracToDec(q) {
+    const w = q.w || 0, n = q.n, d = q.d, steps = [];
+    const B = (d === 10 || d === 100) ? d : (10 % d === 0 ? 10 : 100), k = B / d, N = n * k, p = B === 10 ? 1 : 2, nm = p === 1 ? 'tenths' : 'hundredths';
+    if (w > 0) steps.push({ work: 'Whole number: <b>' + w + '</b>', why: 'The whole number stays in front of the decimal point.' });
+    if (k > 1) {
+      steps.push({ work: B + ' ÷ ' + d + ' = <b>' + k + '</b>', why: 'We want the bottom to be ' + B + ', so find what to multiply by.' });
+      steps.push({ work: fr(n, d) + ' = ' + fr(n + ' × ' + k, B) + ' = ' + fr(N, B), why: 'Multiply the top by ' + k + ' too, so the fraction keeps its value.' });
+    }
+    const raw = decStr(w, N, p);
+    steps.push({ work: fr(N, B) + ' = ' + N + ' ' + nm + ' = <b>' + raw + '</b>', why: p === 1 ? 'Tenths use one digit after the point.' : 'Hundredths use two digits after the point.' });
+    let fin = raw;
+    if (p === 2 && N % 10 === 0) { fin = decStr(w, N / 10, 1); steps.push({ work: raw + ' = <b>' + fin + '</b>', why: 'A zero at the very end does not change the value.' }); }
+    steps.push({ work: 'Answer: <b>' + fin + '</b>', why: 'Check: ' + fin + ' says the same amount as the fraction.', slot: 0 });
+    return { row: [{ t: 'v', v: w > 0 ? { w: w, num: n, den: d } : { num: n, den: d } }, { t: 'op', s: '=' }, { t: 'slot', k: 0 }], slots: [{ v: { w: fin } }], steps: steps };
+  }
   function solveEquiv(q) {
     const n = q.n, d = q.d, k = q.k, n2 = n * k, d2 = d * k, steps = [];
     if (q.miss === 'd') {
@@ -470,6 +498,8 @@
     if (kind === 'frac_add') return solveFracAdd(q);
     if (kind === 'frac_sub') return solveFracSub(q);
     if (kind === 'equiv') return solveEquiv(q);
+    if (kind === 'dec_to_frac') return solveDecToFrac(q);
+    if (kind === 'frac_to_dec') return solveFracToDec(q);
     if (kind === 'fact') return solveFact(q);
     if (kind === 'div_cols') return solveDiv(q);
     if (kind === 'mul_cols') return solveMul(q);

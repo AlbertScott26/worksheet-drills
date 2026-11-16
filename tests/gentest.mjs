@@ -17,7 +17,16 @@ for (const [slug, cv] of Object.entries(G.COVERAGE)) for (const L of [1, 2, 3]) 
     total++;
     try {
       const sv = C.solve(cv.kind, p.q);
-      if (cv.kind === 'frac_add' || cv.kind === 'frac_sub' || cv.kind === 'equiv') {
+      if (cv.kind === 'dec_to_frac' || cv.kind === 'frac_to_dec') {
+        const q = p.q, sl = sv.slots[0], w = q.w || 0;
+        if (cv.kind === 'dec_to_frac') {
+          const B = q.p === 1 ? 10 : 100, v = sl.v; if (w !== (v.w || 0) || v.num * B !== q.N * v.den || gcd(v.num, v.den) !== 1 || v.num >= v.den) throw new Error('dec_to_frac ' + JSON.stringify(q));
+          if (sv.row[0].v.w !== (w + '.' + String(q.N).padStart(q.p, '0'))) throw new Error('dec text');
+        } else {
+          const got = String(sl.v.w), want = ''; if (Math.abs(Number(got) - (w + q.n / q.d)) > 1e-9 || /\.\d*0$/.test(got) || !/^\d+\.\d{1,2}$/.test(got)) throw new Error('frac_to_dec ' + JSON.stringify(q) + ' ' + got);
+        }
+        if (sv.steps.filter(s => s.slot === 0).length !== 1) throw new Error('slot step');
+      } else if (cv.kind === 'frac_add' || cv.kind === 'frac_sub' || cv.kind === 'equiv') {
         const q = p.q, sl = sv.slots[0], uv = (v, d) => (v.w || 0) * d + (v.num || 0);
         if (cv.kind === 'equiv') {
           if (sl.v.num * q.d !== q.n * sl.v.den || sl.v.den !== q.d * q.k || sl.v.num !== q.n * q.k) throw new Error('equiv ' + JSON.stringify(q));
